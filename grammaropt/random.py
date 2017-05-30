@@ -23,7 +23,10 @@ class RandomWalker(Walker):
         `max_depth` there is no garanthee that there would always be
         a terminal production rule to choose. The solution to this problem
         is that when `max_depth` is reached, non-terminal production rules
-        stop from being candidates to be chosen.
+        stop from being candidates to be chosenm, but when only what we can
+        choose are non-terminal production rules, we just choose one of them,
+        even if `max_depth` is exceeded, otherwise the obtained string will
+        not be a valid one according to the grammar.
     """
     def __init__(self, grammar, min_depth=1, max_depth=10, random_state=None):
         assert min_depth <= max_depth
@@ -31,9 +34,6 @@ class RandomWalker(Walker):
         self.min_depth = min_depth
         self.max_depth = max_depth
         self.rng = np.random.RandomState(random_state)
-
-    def _init_walk(self):
-        super()._init_walk()
 
     def next_rule(self, rules, depth=0):
         # use only non-terminals if we are belom `min_depth`

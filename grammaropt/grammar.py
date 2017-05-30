@@ -34,7 +34,7 @@ def build_grammar(rules, types={}):
     
     rules : str
         string following an EBNF-like syntax used by `parsimonious` to represent grammar rules.
-    types : dict of `str`->Type
+    types : dict of str->Type
         maps a type name to a Type object.
         type names can be used inside the `rules` as terminals.
 
@@ -68,6 +68,9 @@ def extract_rules_from_grammar(grammar):
 
 
 def _extract_rules(rules, out=set()):
+    """
+    put recursively all rules from `rules` into `out`
+    """
     for rule in rules:
         if isinstance(rule, Compound) and rule not in out:
             out.add(rule)
@@ -145,6 +148,8 @@ class Walker:
             rule = grammar.default_rule
         else:
             rule = grammar[start]
+        # each element of the stack is (rule, depth)
+        # top elements of the stack are at the right (first is older one, last newest one)
         stack = deque([(rule, 0)])
         while len(stack):
             rule, depth = stack.pop()
@@ -153,6 +158,8 @@ class Walker:
                 stack.append((chosen_rule, depth + 1))
             elif isinstance(rule, Sequence):
                 members = [(m, depth + 1) for m in rule.members]
+                # put them in reverse order so that when popped the order
+                # is the same than the order of `members` 
                 stack.extend(members[::-1])
             elif isinstance(rule, Literal):
                 val = rule.literal
@@ -182,9 +189,11 @@ class DeterministicWalker(Walker):
 
     def _init_walk(self):
         self.decisions = []
-        self.out = {}
 
     def walk(self):
+        #WARNING : this function have a side effect on the grammar object `self.grammar`
+        # but it cleans things up at the end of the call. I dont't find yet a better
+        # way of doing that (see the description of `DeterministicWalker` to see why).
         grammar = self.grammar
         self._init_walk()
         rules = extract_rules_from_grammar(grammar)
@@ -201,7 +210,7 @@ class DeterministicWalker(Walker):
         stack = deque([node])
         while len(stack):
             node = stack.pop()
-            # these are all nodes where choices have been meade
+            # these are all nodes where choices have been made (that is, either `OneOf` or `Type`)
             if hasattr(node, 'parent_rule'):
                 # OneOf nodes
                 if hasattr(node, 'rule'):
@@ -219,19 +228,24 @@ class DeterministicWalker(Walker):
 
 
 def _patched_oneof_match(self, text, pos, cache, error):
+    # pasted from pasimonious source code (parsimonious.expressions.OneOf)
+    # only difference is two lines
     for m in self.members:
         node = m.match_core(text, pos, cache, error)
         if node is not None:
             node = Node(self.name, text, pos, node.end, children=[node])
-            node.parent_rule = self
-            node.rule = m
+            node.parent_rule = self # newly addde line
+            node.rule = m # newly added line
             return node
 
+
 def _patched_type_match(self, text, pos , cache, error):
+    # pasted from `parsimonious` source code (parsimonious.expressions.Regex)
+    # only difference is one line
     m = self.re.match(text, pos)
     if m is not None:
         span = m.span()
         node = RegexNode(self.name, text, pos, pos + span[1] - span[0])
         node.match = m  # TODO: A terrible idea for cache size?
-        node.parent_rule = self
+        node.parent_rule = self # newly added line
     return node

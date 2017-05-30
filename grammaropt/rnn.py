@@ -249,8 +249,10 @@ class RnnWalker(Walker):
         `max_depth` there is no garanthee that there would always be
         a terminal production rule to choose. The solution to this problem
         is that when `max_depth` is reached, non-terminal production rules
-        stop from being candidates to be chosen.
-
+        stop from being candidates to be chosenm, but when only what we can
+        choose are non-terminal production rules, we just choose one of them,
+        even if `max_depth` is exceeded, otherwise the obtained string will
+        not be a valid one according to the grammar.
     """
     def __init__(self, grammar, rnn, min_depth=1, max_depth=5):
         super().__init__(grammar)
@@ -298,10 +300,11 @@ class RnnWalker(Walker):
     def compute_loss(self):
         """
         Compute the log probability of the sequence of decisions
-        in _decisions that the RNN have taken.
+        in _decisions, which contains the _decisions that the RNN have taken
+        in the last walk.
         This is used to update the parameters of the `Model` to
         maximize the probability of the decisions that the RNN
-        have taken.
+        has taken.
         """
         loss_toks = 0.
         loss_vals = 0.
@@ -317,13 +320,13 @@ class RnnWalker(Walker):
 class RnnDeterministicWalker(RnnWalker):
     
     """
-    RnnWalker but where we don't use the RNN to generate, we provide
+    RnnWalker but where we don't use the RNN to generate decisions, we provide
     a groundtruth set of production rules and we collect the trace that
     the RNN model would produce if it had generated the groundtruth.
     This is used to compute the loss of a groundtruth expression,
     represented through `decisions`, which are `groundtruth` decisions
     that the RNN should have taken to generate an expression.
-    `decisions` can be obtained by using a `DeterministicWalker`.
+    `decisions` can be obtained by using a `DeterministicWalker` on an expression.
     """
     def __init__(self, grammar, rnn, decisions, min_depth=1, max_depth=5):
         super().__init__(grammar, rnn, min_depth=min_depth, max_depth=max_depth)
