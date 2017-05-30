@@ -1,5 +1,5 @@
 PYTHON ?= python
-PYTEST ?= pytest
+PYTEST ?= python -m pytest
 
 inplace:
 	$(PYTHON) setup.py develop
