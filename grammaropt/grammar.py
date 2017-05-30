@@ -169,7 +169,7 @@ class Walker:
                 self.terminals.append(val)
 
 
-Decision =  namedtuple('Decision', ['rule', 'choice'])
+_Decision =  namedtuple('Decision', ['rule', 'choice'])
 class DeterministicWalker(Walker):
     """
     a very specific Walker that uses a given str expression `expr`, parse it
@@ -188,6 +188,7 @@ class DeterministicWalker(Walker):
         self._init_walk()
 
     def _init_walk(self):
+        super()._init_walk()
         self.decisions = []
 
     def walk(self):
@@ -213,12 +214,20 @@ class DeterministicWalker(Walker):
             # these are all nodes where choices have been made (that is, either `OneOf` or `Type`)
             if hasattr(node, 'parent_rule'):
                 # OneOf nodes
-                if hasattr(node, 'rule'):
-                    self.decisions.append(Decision(rule=node.parent_rule, choice=node.rule))
+                if isinstance(node.parent_rule, OneOf):
+                    self.decisions.append(_Decision(rule=node.parent_rule, choice=node.rule))
                 # Type nodes
-                else:
+                elif isinstance(node.parent_rule, Type):
                     val = node.parent_rule.from_str(node.text)
-                    self.decisions.append(Decision(rule=node.parent_rule, choice=val))
+                    self.decisions.append(_Decision(rule=node.parent_rule, choice=val))
+                else:
+                    raise TypeError('Unrecognize parent rule : {}'.format(node.parent_rule))
+            # terminals
+            if len(node.children) == 0:
+                val = node.text
+                if hasattr(node, 'parent_rule') and isinstance(node.parent_rule, Type):
+                    val = node.parent_rule.from_str(val)
+                self.terminals.append(val)
             stack.extend(node.children[::-1])
 
         # unpatch OneOf and Type _uncached_match method

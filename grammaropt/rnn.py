@@ -120,6 +120,8 @@ class RnnAdapter:
             for tok in forbidden:
                 pr[self.tok_to_id[tok]] = 0.
         pr = pr.tolist()
+        assert sum(pr) > 0
+        assert len(pr) == len(self.tok_to_id)
         pr = _normalize(pr)
         ids = list(range(len(pr)))
         next_id = self.rng.choice(ids, p=pr)
@@ -142,16 +144,16 @@ class RnnAdapter:
             val = min(val, tok.high)
             val = max(val, tok.low)
         else:
-            raise ValueError('Unrecognized type : {}'.format(tok))
+            raise TypeError('Unrecognized type : {}'.format(tok))
         return val
 
-    def token_logp(self, tok, pred):
+    def token_logp(self, tok, pr):
         """
         compute the log probability of a Token `tok` from a a set
         of predicted probabilities.
         """
         idx = self.tok_to_id[tok]
-        return torch.log(pred[0, idx])
+        return torch.log(pr[0, idx])
 
     def value_logp(self, tok, val, stats):
         """
@@ -175,7 +177,7 @@ class RnnAdapter:
             logp = val * torch.log(mu) - mu - _log_factorial(val)
             return logp
         else:
-            raise ValueError('Unrecognized type : {}'.format(tok))
+            raise TypeError('Unrecognized type : {}'.format(tok))
 
     def _preprocess_input(self, inp):
         # convert `inp` which is a Token to an integer
@@ -233,7 +235,7 @@ def _normalize(vals):
     return vals
 
 
-Decision = namedtuple('Decision', ['action', 'given', 'pred', 'gen'])
+_Decision = namedtuple('Decision', ['action', 'given', 'pred', 'gen'])
 class RnnWalker(Walker):
 
     """
@@ -270,7 +272,7 @@ class RnnWalker(Walker):
         pr, self._state = self.rnn.predict_next_token(self._input, self._state)
         rule = self._generate_rule(pr, rules, depth=depth)
         self._input = rule
-        self._decisions.append(Decision(action='rule', given=rules, pred=pr, gen=rule))
+        self._decisions.append(_Decision(action='rule', given=rules, pred=pr, gen=rule))
         return rule
     
     def _generate_rule(self, pr, rules, depth=0):
@@ -291,7 +293,7 @@ class RnnWalker(Walker):
     def next_value(self, rule):
         stats, _ = self.rnn.predict_next_value(self._input, self._state)
         val = self._generate_value(stats, rule)
-        self._decisions.append(Decision(action='value', given=rule, pred=stats, gen=val))
+        self._decisions.append(_Decision(action='value', given=rule, pred=stats, gen=val))
         return val
 
     def _generate_value(self, stats, rule):
