@@ -16,6 +16,7 @@ from parsimonious.expressions import Compound, Sequence
 
 from .grammar import Walker
 from .types import Int
+from .types import Float
 
 
 class RnnModel(nn.Module):
@@ -83,7 +84,7 @@ class RnnAdapter:
 
     model : Model to adapt
 
-    tok_to_id : dict of Token->Int
+    tok_to_id : dict of Token->int
         Practically, `Token` corresponds to a token, which in our case is a 
         `parsimonious` `Expression`, which refers to a production rule.
         So this dict convert a production rule to an integer identifying the
@@ -143,6 +144,15 @@ class RnnAdapter:
             val = self.rng.poisson(mu)
             val = min(val, tok.high)
             val = max(val, tok.low)
+        elif type(tok) == Float:
+            mu = stat[0][0]
+            mu = math.tanh(mu)
+            mu = (mu + 1) / 2.
+            mu = mu * (tok.high - tok.low) + tok.low
+            std = (stat[0][1])**2
+            val = self.rng.normal(mu, std)
+            val = min(val, tok.high)
+            val = max(val, tok.low)
         else:
             raise TypeError('Unrecognized type : {}'.format(tok))
         return val
@@ -175,6 +185,16 @@ class RnnAdapter:
             # mu represents the mean of a poisson.
             # compute logp of a poisson with mean `mu`
             logp = val * torch.log(mu) - mu - _log_factorial(val)
+            return logp
+        elif type(tok) == Float:
+            mu = stats[0][0]
+            mu = torch.tanh(mu)
+            # convert to [0, 1]
+            mu = (mu + 1) / 2.
+            # convert to [low, high] provided by the  Float `tok`
+            mu = mu * (tok.high - tok.low) + tok.low
+            std = (stats[0][1])**2
+            logp = (val - mu) ** 2 - std ** 2 - math.sqrt(2. * math.pi) * std
             return logp
         else:
             raise TypeError('Unrecognized type : {}'.format(tok))

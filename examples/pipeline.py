@@ -1,5 +1,6 @@
 import warnings
 
+import pandas as pd
 import numpy as np
 
 from sklearn.pipeline import make_pipeline
@@ -14,7 +15,7 @@ import torch
 from grammaropt.grammar import build_grammar
 from grammaropt.grammar import extract_rules_from_grammar
 from grammaropt.random import RandomWalker
-from grammaropt.types import Int
+from grammaropt.types import Int, Float
 from grammaropt.rnn import RnnModel
 from grammaropt.rnn import RnnAdapter
 from grammaropt.rnn import RnnWalker
@@ -52,13 +53,13 @@ def main():
         pipeline = "make_pipeline" "(" elements "," estimator ")"
         elements = (element "," elements) / element
         element = pca / rf
-        pca = "PCA" "(" "n_components" "=" small ")"
+        pca = "PCA" "(" "n_components" "=" int ")"
         estimator = rf / logistic
         logistic = "LogisticRegression" "(" ")"
-        rf = "RandomForestClassifier" "(" "max_depth" "=" int ")"
+        rf = "RandomForestClassifier" "(" "max_depth" "=" int "," "max_features" "=" float ")"
     """
     # build grammar
-    types = {'int': Int(1, 10), 'small': Int(1, 10)}
+    types = {'int': Int(1, 10), 'float': Float(0., 1.)}
     grammar = build_grammar(rules, types=types)
     rules = extract_rules_from_grammar(grammar)
     tok_to_id = {r: i for i, r in enumerate(rules)}
@@ -68,7 +69,7 @@ def main():
     vocab_size = len(rules)
     emb_size = 128
     hidden_size = 128
-    nb_features = 1
+    nb_features = 2
     lr = 1e-4
     gamma = 0.9
 
@@ -85,6 +86,7 @@ def main():
     acc_rnn = []
     R_avg, R_max = 0., 0.
     wl = RnnWalker(grammar=grammar, rnn=rnn)
+    out = []
     for it in range(nb_iter):
         # walk to generate a parse tree
         wl.walk()
@@ -108,7 +110,11 @@ def main():
         optim.step()
         R_max = max(R, R_max)
         acc_rnn.append(R_max)
+        out.append({"code": code, "R": R})
         print(code, R)
+    df = pd.DataFrame(out)
+    df = df.sort_values(by="R", ascending=False)
+    df .to_csv('pipeline.csv')
     
 if __name__ == '__main__':
     main()

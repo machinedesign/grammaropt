@@ -35,3 +35,25 @@ class Int(Type):
     @staticmethod
     def from_str(s):
         return int(s)
+
+
+class Float(Type):
+    """
+    Float `Type`, defined in an interval [low, high]
+    (low and high are included)
+    """
+    def __init__(self, low, high):
+        assert type(low) == float and type(high) == float
+        assert low <= high
+        super()
+        self.name = ''
+        self.low = low
+        self.high = high
+        self.re = re.compile('[0-9]+\.[0-9]+')#TODO do the actual regex
+    
+    def uniform_sample(self, rng):
+        return rng.uniform(self.low, self.high)
+
+    @staticmethod
+    def from_str(s):
+        return float(s)

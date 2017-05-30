@@ -18,7 +18,7 @@ from parsimonious.expressions import Literal
 from parsimonious.nodes import Node
 from parsimonious.nodes import RegexNode
 
-from .types import Type, Int
+from .types import Type
 
 
 def build_grammar(rules, types={}):

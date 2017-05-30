@@ -6,7 +6,7 @@ from collections import defaultdict
 import numpy as np
 from parsimonious.expressions import Compound, Sequence
 from .grammar import Walker
-from .types import Int
+
 
 class RandomWalker(Walker):
     """
