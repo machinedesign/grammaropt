@@ -8,8 +8,6 @@ based walker needs to know that there are types so that it predicts a value.
 """
 import re
 
-import numpy as np
-
 from parsimonious.expressions import Regex
 
 class Type(Regex):

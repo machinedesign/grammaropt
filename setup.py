@@ -22,6 +22,6 @@ setup(
                  'Operating System :: MacOS'],
     platforms='any',
     packages=['grammaropt'],
-    requires=['parsimonious'],
+    requires=['parsimonious', 'numpy', 'pytorch'],
     py_modules=['grammaropt'],
 )
