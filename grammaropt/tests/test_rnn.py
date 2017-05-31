@@ -1,6 +1,8 @@
 import pytest
 
 import numpy as np
+from scipy.stats import norm
+from scipy.stats import poisson
 
 from grammaropt.rnn import RnnModel
 from grammaropt.rnn import RnnWalker
@@ -11,6 +13,7 @@ from grammaropt.grammar import DeterministicWalker
 from grammaropt.grammar import extract_rules_from_grammar
 from grammaropt.grammar import build_grammar
 from grammaropt.types import Int
+from grammaropt.types import Float
 
 import torch
 from torch.autograd import Variable
@@ -30,18 +33,26 @@ def test_model():
 
 def test_adapter():
     tok_to_id = {'z': 0, 'a': 1, 'b': 2, 'c': 3}
-
+    
+    # check assertion when vocab size should do not correpond to tok_to_id nb of elements
     with pytest.raises(AssertionError):
         model = RnnModel(vocab_size=3)
         rnn = RnnAdapter(model, tok_to_id)
     
+
     model = RnnModel(vocab_size=4, hidden_size=128)
     rnn = RnnAdapter(model, tok_to_id, random_state=42)
     
+    # check assertion error when size of pr should correspond to vocab_size
     with pytest.raises(AssertionError):
         pr = Variable(torch.from_numpy(np.array([0.1, 0.1, 0.1])).view(1, -1))
         rnn.generate_next_token(pr)
-     
+    # check assertion error when probas sum should > 0
+    with pytest.raises(AssertionError):
+        pr = Variable(torch.from_numpy(np.array([0., 0., 0., 0.])).view(1, -1))
+        rnn.generate_next_token(pr)
+    
+    # check if allowed has the correct behavior
     pr = Variable(torch.from_numpy(np.array([0.25, 0.25, 0.25, 0.25])).view(1, -1))
     tok = rnn.generate_next_token(pr)
     assert tok in ('a', 'b', 'c', 'z')
@@ -53,14 +64,18 @@ def test_adapter():
     assert tok =='a'
     with pytest.raises(AssertionError):
         tok  = rnn.generate_next_token(pr, allowed=[])
-
+    
+    # check if generate value from Int is in the interval
     tok = Int(1, 10)
     stat = Variable(torch.from_numpy(np.array([5.])).view(1, 1))
     val = rnn.generate_next_value(stat, tok)
     assert 1 <= val <= 10
     
+    # check unrecognizable token type because 'a' is not a Type
     with pytest.raises(TypeError):
         val = rnn.generate_next_value(stat, 'a')
+    
+    # check behavior of logp
 
     val = rnn.token_logp('a', pr)
     assert val.size() == (1,)
@@ -71,12 +86,24 @@ def test_adapter():
     
     with pytest.raises(TypeError):
         val = rnn.value_logp('a', 5, stat)
+    
+    # check if generate value from Float is in the interval
+    tok = Float(0., 10.)
+    stat = Variable(torch.from_numpy(np.array([5., 1.])).view(1, 2))
+    val = rnn.generate_next_value(stat, tok)
+    assert 0 <= val <= 10
+    
+    val = rnn.value_logp(tok, 5., stat)
+    assert val.size() == (1,) 
 
+
+    # check if probas returned by predict_next_token sum to 1
     state = Variable(torch.zeros(1, 1, 128)), Variable(torch.zeros(1, 1, 128))
     inp = Variable(torch.zeros(1, 1)).long()
     pr, _ = rnn.predict_next_token('a', state)
     assert pr.sum().data[0] == 1.
-
+    
+    # check next_value behavior
     stat, _ = rnn.predict_next_value('a', state)
     assert stat.size() == (1, 1)
 

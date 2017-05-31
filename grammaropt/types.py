@@ -8,6 +8,9 @@ based walker needs to know that there are types so that it predicts a value.
 """
 import re
 
+from scipy.stats import poisson
+from scipy.stats import norm
+
 from parsimonious.expressions import Regex
 
 class Type(Regex):
@@ -31,7 +34,7 @@ class Int(Type):
     def uniform_sample(self, rng):
         # assumes rng is `np.random.Random` rather than `random.Random`
         return rng.randint(self.low, self.high + 1)
-
+    
     @staticmethod
     def from_str(s):
         return int(s)
