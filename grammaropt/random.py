@@ -34,7 +34,6 @@ class RandomWalker(Walker):
         are available, otherwise keep applying production rules.
     """
     def __init__(self, grammar, min_depth=None, max_depth=None, strict_depth_limit=False, random_state=None):
-        assert min_depth <= max_depth
         super().__init__(grammar, min_depth=min_depth, max_depth=max_depth, strict_depth_limit=strict_depth_limit)
         self.rng = np.random.RandomState(random_state)
 

@@ -127,6 +127,8 @@ class Walker:
 
     """
     def __init__(self, grammar, min_depth=None, max_depth=None, strict_depth_limit=False):
+        if min_depth and max_depth:
+            assert min_depth <= max_depth
         self.grammar = grammar
         self.min_depth = min_depth
         self.max_depth = max_depth
