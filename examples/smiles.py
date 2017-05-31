@@ -67,7 +67,7 @@ for epoch in range(10000):
         wl.walk()
         gt = wl.decisions
         model.zero_grad()
-        wl = RnnDeterministicWalker(grammar=grammar, rnn=rnn, decisions=gt, min_depth=1, max_depth=100)
+        wl = RnnDeterministicWalker(grammar=grammar, rnn=rnn, decisions=gt)
         wl.walk()
         loss = wl.compute_loss()
         loss.backward()
@@ -76,7 +76,7 @@ for epoch in range(10000):
         print('avg loss : {:.4f}, loss : {:4f}'.format(avg_loss, loss.data[0]))
     if epoch % 10 == 0:
         # check if the generation works by generating from the RNN model
-        wl = RnnWalker(grammar=grammar, rnn=rnn, min_depth=1, max_depth=100)
+        wl = RnnWalker(grammar=grammar, rnn=rnn, min_depth=1, max_depth=10, strict_depth_limit=True)
         wl.walk()
         expr = as_str(wl.terminals)
         print(expr, is_valid(expr))

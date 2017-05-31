@@ -28,28 +28,13 @@ class RandomWalker(Walker):
         even if `max_depth` is exceeded, otherwise the obtained string will
         not be a valid one according to the grammar.
     """
-    def __init__(self, grammar, min_depth=1, max_depth=10, random_state=None):
+    def __init__(self, grammar, min_depth=None, max_depth=None, strict_depth_limit=False, random_state=None):
         assert min_depth <= max_depth
-        super().__init__(grammar)
-        self.min_depth = min_depth
-        self.max_depth = max_depth
+        super().__init__(grammar, min_depth=min_depth, max_depth=max_depth, strict_depth_limit=strict_depth_limit)
         self.rng = np.random.RandomState(random_state)
 
-    def next_rule(self, rules, depth=0):
-        # use only non-terminals if we are belom `min_depth`
-        # (only when possible, otherwise, when there are no terminals use the given rules as is)
-        if depth <= self.min_depth:
-            rules_ = [r for r in rules if isinstance(r, Compound)]
-        # use only terminals if we are above `max_depth 
-        # (only when possible, otherwise, when there are no terminals use the given rules as is)
-        elif depth >= self.max_depth:
-            rules_ = [r for r in rules if not isinstance(r, Compound)]
-        else:
-            rules_ = rules
-        if len(rules_):
-            return self.rng.choice(rules_)
-        else:
-            return self.rng.choice(rules)
+    def next_rule(self, rules):
+        return self.rng.choice(rules)
 
     def next_value(self, rule):
         return rule.uniform_sample(self.rng)

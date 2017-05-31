@@ -189,7 +189,7 @@ def test_rnn_deterministic_walker():
     
     model = RnnModel(vocab_size=len(tok_to_id), hidden_size=128)
     rnn = RnnAdapter(model, tok_to_id, random_state=42)
-    wl = RnnDeterministicWalker(grammar, rnn, dwl.decisions, min_depth=1, max_depth=5)
+    wl = RnnDeterministicWalker(grammar, rnn, dwl.decisions)
     wl.walk() 
     assert wl.decisions == dwl.decisions
     assert wl.terminals == dwl.terminals

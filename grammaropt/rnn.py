@@ -283,11 +283,9 @@ class RnnWalker(Walker):
         even if `max_depth` is exceeded, otherwise the obtained string will
         not be a valid one according to the grammar.
     """
-    def __init__(self, grammar, rnn, min_depth=1, max_depth=5):
-        super().__init__(grammar)
+    def __init__(self, grammar, rnn, min_depth=None, max_depth=None, strict_depth_limit=False):
+        super().__init__(grammar, min_depth=min_depth, max_depth=max_depth, strict_depth_limit=strict_depth_limit)
         self.rnn = rnn
-        self.min_depth = min_depth
-        self.max_depth = max_depth
 
     def _init_walk(self):
         super()._init_walk()
@@ -295,26 +293,14 @@ class RnnWalker(Walker):
         self._state = None
         self._decisions = []
     
-    def next_rule(self, rules, depth=0):
+    def next_rule(self, rules):
         pr, self._state = self.rnn.predict_next_token(self._input, self._state)
-        rule = self._generate_rule(pr, rules, depth=depth)
+        rule = self._generate_rule(pr, rules)
         self._input = rule
         self._decisions.append(_Decision(action='rule', given=rules, pred=pr, gen=rule))
         return rule
     
-    def _generate_rule(self, pr, rules, depth=0):
-        # use only non-terminals if we are belom `min_depth`
-        # (only when possible, otherwise, when there are no terminals use the given rules as is)
-        if depth <= self.min_depth:
-            rules_ = [r for r in rules if isinstance(r, Compound)]
-        # use only terminals if we are above `max_depth 
-        # (only when possible, otherwise, when there are no terminals use the given rules as is)
-        elif depth >= self.max_depth:
-            rules_ = [r for r in rules if not isinstance(r, Compound)]
-        else:
-            rules_ = rules
-        if len(rules_):
-            rules = rules_
+    def _generate_rule(self, pr, rules):
         return self.rnn.generate_next_token(pr, allowed=rules)
 
     def next_value(self, rule):
@@ -357,15 +343,15 @@ class RnnDeterministicWalker(RnnWalker):
     that the RNN should have taken to generate an expression.
     `decisions` can be obtained by using a `DeterministicWalker` on an expression.
     """
-    def __init__(self, grammar, rnn, decisions, min_depth=1, max_depth=5):
-        super().__init__(grammar, rnn, min_depth=min_depth, max_depth=max_depth)
+    def __init__(self, grammar, rnn, decisions):
+        super().__init__(grammar, rnn, min_depth=None, max_depth=None, strict_depth_limit=False)
         self.decisions = decisions
     
     def _init_walk(self):
         super()._init_walk()
         self._external_decisions = self.decisions[::-1]
     
-    def _generate_rule(self, pr, rules, depth=0):
+    def _generate_rule(self, pr, rules):
         parent_rule, rule = self._external_decisions.pop()
         assert parent_rule.members == rules
         return rule

@@ -87,6 +87,10 @@ def _build_type_rules(types):
     return rules
 
 
+class StopExpansion(Exception):
+    pass
+
+
 class Walker:
     """
     Walkers are objects that do a random walk (deterministic walks
@@ -103,10 +107,13 @@ class Walker:
     grammar : Grammar
         grammar where to walk
     """
-    def __init__(self, grammar):
+    def __init__(self, grammar, min_depth=None, max_depth=None, strict_depth_limit=False):
         self.grammar = grammar
+        self.min_depth = min_depth
+        self.max_depth = max_depth
+        self.strict_depth_limit = strict_depth_limit
 
-    def next_rule(self, rules, depth=0):
+    def next_rule(self, rules):
         """
         Given a set of production `rules`, choose the next one.
         Implemented by specific Walkers.
@@ -154,10 +161,13 @@ class Walker:
         while len(stack):
             rule, depth = stack.pop()
             if isinstance(rule, OneOf):
-                chosen_rule = self.next_rule(rule.members, depth=depth)
-                stack.append((chosen_rule, depth + 1))
+                members = self._filter_by_depth(rule.members, depth)
+                if len(members):
+                    chosen_rule = self.next_rule(members)
+                    stack.append((chosen_rule, depth + 1))
             elif isinstance(rule, Sequence):
-                members = [(m, depth + 1) for m in rule.members]
+                members = rule.members
+                members = [(m, depth + 1) for m in members]
                 # put them in reverse order so that when popped the order
                 # is the same than the order of `members` 
                 stack.extend(members[::-1])
@@ -167,6 +177,23 @@ class Walker:
             elif isinstance(rule, Type):
                 val = self.next_value(rule)
                 self.terminals.append(val)
+    
+    def _filter_by_depth(self, rules, depth):
+        # use only non-terminals if we are belom `min_depth`
+        # (only when possible, otherwise, when there are no terminals use the given rules as is)
+        if self.min_depth is not None and depth <= self.min_depth:
+            rulesf = [r for r in rules if isinstance(r, Compound)]
+            return rulesf if len(rulesf) else rules
+        # use only terminals if we are above `max_depth 
+        # (only when possible, otherwise, when there are no terminals use the given rules as is)
+        elif self.max_depth is not None and depth >= self.max_depth:
+            rulesf = [r for r in rules if not isinstance(r, Compound)]
+            if len(rulesf) == 0 and self.strict_depth_limit:
+                return []
+            else:
+                return rulesf if len(rulesf) else rules
+        else:
+            return rules
 
 
 _Decision =  namedtuple('Decision', ['rule', 'choice'])

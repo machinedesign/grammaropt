@@ -23,7 +23,6 @@ def test_random_walker():
         assert depth >= min_depth
 
 
-
 def _get_max_depth(node):
     if len(node.children) == 0:
         return 0

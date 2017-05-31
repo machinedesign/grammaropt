@@ -114,7 +114,7 @@ def main():
         print(code, R)
     df = pd.DataFrame(out)
     df = df.sort_values(by="R", ascending=False)
-    df .to_csv('pipeline.csv')
+    df.to_csv('pipeline.csv')
     
 if __name__ == '__main__':
     main()
