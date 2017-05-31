@@ -106,6 +106,25 @@ class Walker:
 
     grammar : Grammar
         grammar where to walk
+
+    min_depth : int
+        minimum depth of the parse tree.
+    max_depth : int
+        maximum depth of the parse tree.
+        Note that it could exceed `max_depth` because when it reaches
+        `max_depth` there is no garanthee that there would always be
+        a terminal production rule to choose. The solution to this problem
+        is that when `max_depth` is reached, non-terminal production rules
+        stop from being candidates to be chosen, but when only what we can
+        choose are non-terminal production rules, we just choose one of them,
+        even if `max_depth` is exceeded, otherwise the obtained string will
+        not be a valid one according to the grammar.
+    strict_depth_limit : bool
+        if True, when `max_depth` is reached, forbid any further production rules 
+        when a choice should be made.
+        If False, even when `max_depth` is reached, choose terminals when terminals
+        are available, otherwise keep applying production rules.
+
     """
     def __init__(self, grammar, min_depth=None, max_depth=None, strict_depth_limit=False):
         self.grammar = grammar

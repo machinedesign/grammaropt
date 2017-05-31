@@ -282,6 +282,12 @@ class RnnWalker(Walker):
         choose are non-terminal production rules, we just choose one of them,
         even if `max_depth` is exceeded, otherwise the obtained string will
         not be a valid one according to the grammar.
+    strict_depth_limit : bool
+        if True, when `max_depth` is reached, forbid any further production rules 
+        when a choice should be made.
+        If False, even when `max_depth` is reached, choose terminals when terminals
+        are available, otherwise keep applying production rules.
+
     """
     def __init__(self, grammar, rnn, min_depth=None, max_depth=None, strict_depth_limit=False):
         super().__init__(grammar, min_depth=min_depth, max_depth=max_depth, strict_depth_limit=strict_depth_limit)
