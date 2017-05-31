@@ -1,3 +1,4 @@
+import math
 import pytest
 
 import numpy as np
@@ -9,6 +10,9 @@ from grammaropt.rnn import RnnWalker
 from grammaropt.rnn import RnnDeterministicWalker
 from grammaropt.rnn import RnnAdapter
 from grammaropt.rnn import _normalize
+from grammaropt.rnn import _torch_logp_normal
+from grammaropt.rnn import _torch_logp_poisson
+
 from grammaropt.grammar import DeterministicWalker
 from grammaropt.grammar import extract_rules_from_grammar
 from grammaropt.grammar import build_grammar
@@ -77,12 +81,12 @@ def test_adapter():
     
     # check behavior of logp
 
-    val = rnn.token_logp('a', pr)
-    assert val.size() == (1,)
-    assert val.data[0] == np.log(pr[0, tok_to_id['a']])
+    logp = rnn.token_logp('a', pr)
+    assert logp.size() == (1,)
+    assert logp.data[0] == np.log(pr[0, tok_to_id['a']])
 
-    val = rnn.value_logp(tok, 5, stat)
-    assert val.size() == (1,)
+    logp = rnn.value_logp(tok, 5, stat)
+    assert logp.size() == (1,)
     
     with pytest.raises(TypeError):
         val = rnn.value_logp('a', 5, stat)
@@ -95,8 +99,7 @@ def test_adapter():
     
     val = rnn.value_logp(tok, 5., stat)
     assert val.size() == (1,) 
-
-
+ 
     # check if probas returned by predict_next_token sum to 1
     state = Variable(torch.zeros(1, 1, 128)), Variable(torch.zeros(1, 1, 128))
     inp = Variable(torch.zeros(1, 1)).long()
@@ -107,6 +110,18 @@ def test_adapter():
     stat, _ = rnn.predict_next_value('a', state)
     assert stat.size() == (1, 1)
 
+
+def test_logp():
+    mu = torch.from_numpy(np.array([5.]))
+    val = 5
+    logp = _torch_logp_poisson(val, mu)
+    assert math.isclose(logp[0], poisson.logpmf(val, mu[0]), rel_tol=1e-5)
+
+    mu = torch.from_numpy(np.array([5.]))
+    std = torch.from_numpy(np.array([1.]))
+    val = 2.
+    logp = _torch_logp_normal(val, mu, std)
+    assert math.isclose(logp[0], norm.logpdf(val, mu[0], std[0]), rel_tol=1e-5)
  
 
 def test_normalize():

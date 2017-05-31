@@ -4,8 +4,6 @@ and an a simple torch-based RNN model. The RNN Walker and RNN model communicate
 through an RNN Adapter, so that several kinds of models can be used with an RNN Walker.
 """
 from collections import namedtuple
-from scipy.stats import norm
-from scipy.stats import poisson
 import numpy as np
 import math
 
@@ -186,8 +184,7 @@ class RnnAdapter:
             mu = mu * (tok.high - tok.low) + tok.low
             # mu represents the mean of a poisson.
             # compute logp of a poisson with mean `mu`
-            logp = val * torch.log(mu) - mu - _log_factorial(val)
-            assert math.isclose(logp.data[0], poisson.logpmf(val, mu.data[0]), rel_tol=1e-5)
+            logp = _torch_logp_poisson(val, mu)
             return logp
         elif type(tok) == Float:
             mu = stats[0][0]
@@ -197,8 +194,7 @@ class RnnAdapter:
             # convert to [low, high] provided by the  Float `tok`
             mu = mu * (tok.high - tok.low) + tok.low
             std = (stats[0][1])**2
-            logp = -0.5 * ((val - mu) ** 2) / std**2 - torch.log(std) - math.log(math.sqrt(2. * math.pi))
-            assert math.isclose(logp.data[0], norm.logpdf(val, mu.data[0], std.data[0]), rel_tol=1e-5)
+            logp = _torch_logp_normal(val, mu, std)
             return logp
         else:
             raise TypeError('Unrecognized type : {}'.format(tok))
@@ -215,6 +211,13 @@ class RnnAdapter:
         x = Variable(x)
         return x
 
+def _torch_logp_normal(val, mu, std):
+    logp = -0.5 * ((val - mu) ** 2) / std**2 - torch.log(std) - math.log(math.sqrt(2. * math.pi))
+    return logp
+
+def _torch_logp_poisson(val, mu):
+    logp = val * torch.log(mu) - mu - _log_factorial(val)
+    return logp
 
 def _log_factorial(k):
     """
