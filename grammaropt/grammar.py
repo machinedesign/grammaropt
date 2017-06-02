@@ -72,11 +72,10 @@ def _extract_rules(rules, out=set()):
     put recursively all rules from `rules` into `out`
     """
     for rule in rules:
-        if isinstance(rule, Compound) and rule not in out:
+        if rule not in out:
             out.add(rule)
-            _extract_rules(rule.members, out=out)
-        else:
-            out.add(rule)
+            if isinstance(rule, Compound):
+                _extract_rules(rule.members, out=out)
 
 
 def _build_type_rules(types):
@@ -306,3 +305,7 @@ def _patched_type_match(self, text, pos , cache, error):
         node.match = m  # TODO: A terrible idea for cache size?
         node.parent_rule = self # newly added line
     return node
+
+
+def as_str(terminals):
+    return ''.join(map(str, terminals))

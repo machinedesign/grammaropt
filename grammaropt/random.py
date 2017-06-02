@@ -5,8 +5,9 @@ production rules and values uniformly at random.
 from collections import defaultdict
 import numpy as np
 from parsimonious.expressions import Compound, Sequence
-from .grammar import Walker
 
+from .grammar import as_str
+from .grammar import Walker
 
 class RandomWalker(Walker):
     """
@@ -42,3 +43,15 @@ class RandomWalker(Walker):
 
     def next_value(self, rule):
         return rule.uniform_sample(self.rng)
+
+def optimize(func, walker, nb_iter=10):
+    wl = walker
+    X = []
+    y = []
+    for it in range(nb_iter):
+        wl.walk()
+        code = as_str(wl.terminals)
+        R = func(code)
+        X.append(code)
+        y.append(R)
+    return X, y

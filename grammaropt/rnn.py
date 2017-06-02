@@ -15,6 +15,8 @@ from torch.autograd import Variable
 from parsimonious.expressions import Compound, Sequence
 
 from .grammar import Walker
+from .grammar import as_str
+
 from .types import Int
 from .types import Float
 
@@ -366,3 +368,22 @@ class RnnDeterministicWalker(RnnWalker):
         rule_, val = self._external_decisions.pop()
         assert rule_ == rule
         return val
+
+def optimize(func, walker, optim, nb_iter=10, gamma=0.9):
+    wl = walker
+    model = wl.rnn.model
+    X = []
+    y = []
+    R_avg = 0.
+    for it in range(nb_iter):
+        wl.walk()
+        code = as_str(wl.terminals)
+        R = func(code)
+        R_avg = R_avg * gamma + R * (1 - gamma)
+        model.zero_grad()
+        loss = (R - R_avg) * wl.compute_loss()
+        loss.backward()
+        optim.step()
+        X.append(code)
+        y.append(R)
+    return X, y
