@@ -4,14 +4,17 @@ import pytest
 import numpy as np
 from scipy.stats import norm
 from scipy.stats import poisson
+from scipy.stats import beta
 
 from grammaropt.rnn import RnnModel
 from grammaropt.rnn import RnnWalker
 from grammaropt.rnn import RnnDeterministicWalker
 from grammaropt.rnn import RnnAdapter
+from grammaropt.rnn import optimize
 from grammaropt.rnn import _normalize
 from grammaropt.rnn import _torch_logp_normal
 from grammaropt.rnn import _torch_logp_poisson
+from grammaropt.rnn import _torch_logp_beta
 
 from grammaropt.grammar import DeterministicWalker
 from grammaropt.grammar import extract_rules_from_grammar
@@ -112,16 +115,22 @@ def test_adapter():
 
 
 def test_logp():
-    mu = torch.from_numpy(np.array([5.]))
+    mu = torch.FloatTensor([5.])
     val = 5
     logp = _torch_logp_poisson(val, mu)
     assert math.isclose(logp[0], poisson.logpmf(val, mu[0]), rel_tol=1e-5)
 
-    mu = torch.from_numpy(np.array([5.]))
-    std = torch.from_numpy(np.array([1.]))
+    mu = torch.FloatTensor([5.])
+    std = torch.FloatTensor([1.])
     val = 2.
     logp = _torch_logp_normal(val, mu, std)
     assert math.isclose(logp[0], norm.logpdf(val, mu[0], std[0]), rel_tol=1e-5)
+
+    a = torch.FloatTensor([5.])
+    b = torch.FloatTensor([1.])
+    val = 0.3
+    logp = _torch_logp_beta(val, a, b)
+    assert math.isclose(logp[0], beta.logpdf(val, a[0], b[0]), rel_tol=1e-5)
  
 
 def test_normalize():
@@ -169,6 +178,31 @@ def test_rnn_walker():
         node = grammar.parse(expr)
         depth = _get_max_depth(node)
         assert depth >= min_depth
+
+def test_optimize():
+    rules = r"""
+        S = (T "+" S) / (T "*" S) / (T "/" S) / T
+        T = (po S pc) / ("sin" po S pc) / ("cos" po S pc) / ("exp" po S pc) / "x" / int
+        po = "("
+        pc = ")"
+    """
+    types = {"int": Int(1, 10)}
+    grammar = build_grammar(rules, types=types)
+    rules = extract_rules_from_grammar(grammar)
+    tok_to_id = {r: i for i, r in enumerate(rules)}
+    model = RnnModel(vocab_size=len(tok_to_id), hidden_size=128)
+    rnn = RnnAdapter(model, tok_to_id, random_state=42)
+    wl = RnnWalker(grammar, rnn, min_depth=1, max_depth=5)
+    optim = torch.optim.Adam(model.parameters(), lr=1e-3)
+    codes, scores = optimize(_func, wl, optim, nb_iter=10)
+    assert len(codes) == 10
+    assert len(scores) == 10
+    for c, s in zip(codes, scores):
+        assert _func(c) == s
+
+
+def _func(x):
+    return 1 if "cos" in x else 0
 
 
 def test_rnn_deterministic_walker():

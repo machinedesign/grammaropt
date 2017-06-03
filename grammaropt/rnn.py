@@ -147,6 +147,15 @@ class RnnAdapter:
             val = min(val, tok.high)
             val = max(val, tok.low)
         elif type(tok) == Float:
+            """
+            # beta distrib
+            a = math.exp(stat[0][0])
+            b = math.exp(stat[0][1])
+            val = self.rng.beta(a, b)
+            val = val * (tok.high - tok.low) + tok.low
+            print(val)
+            return val
+            """
             mu = stat[0][0]
             mu = math.tanh(mu)
             mu = (mu + 1) / 2.
@@ -155,6 +164,7 @@ class RnnAdapter:
             val = self.rng.normal(mu, std)
             val = min(val, tok.high)
             val = max(val, tok.low)
+            return val
         else:
             raise TypeError('Unrecognized type : {}'.format(tok))
         return val
@@ -214,6 +224,7 @@ class RnnAdapter:
         return x
 
 def _torch_logp_normal(val, mu, std):
+    from scipy.stats import norm
     logp = -0.5 * ((val - mu) ** 2) / std**2 - torch.log(std) - math.log(math.sqrt(2. * math.pi))
     return logp
 
@@ -221,10 +232,17 @@ def _torch_logp_poisson(val, mu):
     logp = val * torch.log(mu) - mu - _log_factorial(val)
     return logp
 
+def _torch_logp_beta(val, a, b):
+    val = torch.FloatTensor([val])
+    return (a - 1) * torch.log(val) + (b - 1) * torch.log(1 - val) - _log_B(a[0], b[0])
+
+def _log_B(a, b):
+    from scipy.special import gammaln
+    return float(gammaln(a) + gammaln(b) - gammaln(a + b))
+
+
 def _log_factorial(k):
-    """
-    compute $log(k!)$
-    """
+    #compute $log(k!)$
     return sum(math.log(i) for i in range(1, k + 1))
 
 

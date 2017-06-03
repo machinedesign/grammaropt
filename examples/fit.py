@@ -5,6 +5,7 @@ import torch
 from grammaropt.grammar import build_grammar
 from grammaropt.grammar import DeterministicWalker
 from grammaropt.grammar import extract_rules_from_grammar
+from grammaropt.grammar import as_str
 from grammaropt.types import Int
 from grammaropt.rnn import RnnModel
 from grammaropt.rnn import RnnAdapter
@@ -12,9 +13,6 @@ from grammaropt.rnn import RnnWalker
 from grammaropt.rnn import RnnDeterministicWalker
 from grammaropt.random import RandomWalker
 
-
-def as_str(terminals):
-    return ''.join(map(str, terminals))
 
 nb_iter = 1000
 lr = 1e-4

@@ -1,12 +1,11 @@
 import sys
 
 from grammaropt.grammar import build_grammar
+from grammaropt.grammar import as_str
+
 from grammaropt.types import Int
 from grammaropt.random import RandomWalker
 
-
-def as_str(terminals):
-    return ''.join(map(str, terminals))
 
 rules = r"""
     S = (T "+" S) / (T "*" S) / (T "/" S) / T

@@ -14,6 +14,7 @@ import torch
 
 from grammaropt.grammar import build_grammar
 from grammaropt.grammar import extract_rules_from_grammar
+from grammaropt.grammar import as_str
 from grammaropt.random import RandomWalker
 from grammaropt.types import Int, Float
 from grammaropt.rnn import RnnModel
@@ -24,10 +25,6 @@ warnings.filterwarnings("ignore")
 
 digits = datasets.load_digits()
 dataset = digits
-
-
-def as_str(terminals):
-    return ''.join(map(str, terminals))
 
 
 def evaluate(code):

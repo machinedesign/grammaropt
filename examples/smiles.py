@@ -6,6 +6,7 @@ from molecules.molecule import is_valid
 import torch
 
 from grammaropt.grammar import build_grammar
+from grammaropt.grammar import as_str
 from grammaropt.random import RandomWalker
 from grammaropt.grammar import extract_rules_from_grammar
 from grammaropt.rnn import RnnModel
@@ -43,9 +44,6 @@ rules = r"""
     digits = (DIGIT digits) / DIGIT
 """
 
-def as_str(terminals):
-    return ''.join(map(str, terminals))
-
 # build grammar
 grammar = build_grammar(rules)
 rules = extract_rules_from_grammar(grammar)
@@ -59,7 +57,7 @@ rnn = RnnAdapter(model, tok_to_id)
 
 smiles = np.load('zinc_250k_subset.npz')['X']
 avg_loss = 0.
-smiles = smiles[0:1]
+smiles = smiles[0:100]
 for epoch in range(10000):
     np.random.shuffle(smiles)
     for s in smiles:
