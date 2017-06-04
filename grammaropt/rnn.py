@@ -15,6 +15,7 @@ from torch.autograd import Variable
 from parsimonious.expressions import Compound, Sequence
 
 from .grammar import Walker
+from .grammar import DeterministicWalker
 from .grammar import as_str
 
 from .types import Int
@@ -386,6 +387,13 @@ class RnnDeterministicWalker(RnnWalker):
         rule_, val = self._external_decisions.pop()
         assert rule_ == rule
         return val
+
+    @staticmethod
+    def from_str(grammar, rnn, expr):
+        wl = DeterministicWalker(grammar, expr)
+        wl.walk()
+        return RnnDeterministicWalker(grammar, rnn, wl.decisions)
+
 
 def optimize(func, walker, optim, nb_iter=10, gamma=0.9):
     wl = walker

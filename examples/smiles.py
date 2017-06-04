@@ -16,6 +16,11 @@ from grammaropt.rnn import RnnDeterministicWalker
 from grammaropt.grammar import DeterministicWalker
 
 
+def _get_max_depth(node):
+    if len(node.children) == 0:
+        return 0
+    return max(1 + _get_max_depth(c) for c in node.children)
+
 
 rules = r"""
     smiles  =  chain
@@ -58,23 +63,22 @@ rnn = RnnAdapter(model, tok_to_id)
 smiles = np.load('zinc_250k_subset.npz')['X']
 avg_loss = 0.
 smiles = smiles[0:100]
+
+max_depth = max(map(_get_max_depth, map(grammar.parse, smiles)))
 for epoch in range(10000):
     np.random.shuffle(smiles)
     for s in smiles:
-        wl = DeterministicWalker(grammar=grammar, expr=s)
+        wl = RnnDeterministicWalker.from_str(grammar, rnn, s)
         wl.walk()
-        gt = wl.decisions
         model.zero_grad()
-        wl = RnnDeterministicWalker(grammar=grammar, rnn=rnn, decisions=gt)
-        wl.walk()
         loss = wl.compute_loss()
         loss.backward()
         optim.step()
         avg_loss = avg_loss * gamma + loss.data[0] * (1 - gamma)
+    if epoch % 1 == 0:
         print('avg loss : {:.4f}, loss : {:4f}'.format(avg_loss, loss.data[0]))
-    if epoch % 10 == 0:
         # check if the generation works by generating from the RNN model
-        wl = RnnWalker(grammar=grammar, rnn=rnn, min_depth=1, max_depth=10, strict_depth_limit=True)
+        wl = RnnWalker(grammar=grammar, rnn=rnn, min_depth=1, max_depth=max_depth, strict_depth_limit=True)
         wl.walk()
         expr = as_str(wl.terminals)
         print(expr, is_valid(expr))
