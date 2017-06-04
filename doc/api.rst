@@ -1,12 +1,6 @@
 API Documentation
 -----------------
 
-Grammar
-=======
-
-.. automodule:: grammaropt.grammar
-   :members:
-
 Walkers
 =======
 
