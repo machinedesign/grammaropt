@@ -433,6 +433,36 @@ class RnnDeterministicWalker(RnnWalker):
 
 
 def optimize(func, walker, optim, nb_iter=10, gamma=0.9):
+    """
+    Optimize a problem (evaluated using `func`) using an `RnnWalker`.
+    the RNN is optimized using policy gradients.
+
+    Parameters
+    ==========
+
+    func : callable
+        take a str as input (the code) and return a scalar, the higher the better.
+
+    walker : RandomWalker
+
+    nb_iter : int
+        Total number of iterations
+
+    gamma : float
+        policy gradients require a baseline that is substracted from
+        the reward to lower the variance of the gradient.
+        The baseline is implemented here as a moving average of previous
+        scores, updated this way : $b = b * gamma + (1 - b) * gamma$
+
+    Returns
+    =======
+
+    tuple (codes, scores) where:
+        - `codes` is a list of str, where the i-th element is the code
+           evaluated in the i-th iteration
+        - `scores` is a list of scalars where the i-th element is the score
+           of `codes[i]` after evaluating with `func`.
+    """
     wl = walker
     model = wl.rnn.model
     X = []

@@ -1,6 +1,16 @@
 API Documentation
 -----------------
 
+Grammar
+=======
+
+
+.. autofunction:: grammaropt.grammar.build_grammar
+
+.. autofunction:: grammaropt.grammar.extract_rules_from_grammar
+
+.. autofunction:: grammaropt.grammar.as_str
+
 Walkers
 =======
 
@@ -16,6 +26,24 @@ Walkers
 .. autoclass:: grammaropt.rnn.DeterministicRnnWalker
    :members:
 
+Adapters
+========
+
+.. autoclass:: grammaropt.rnn.RnnAdapter
+
+Models
+======
+
+.. autoclass:: grammaropt.rnn.RnnModel
+
+
+Optimizers
+==========
+
+.. autofunction:: grammaropt.random.optimize
+
+.. autofunction:: grammaropt.rnn.optimize
+
 Types
 =====
 
@@ -23,4 +51,7 @@ Types
    :members:
 
 .. autoclass:: grammaropt.types.Int
+   :members:
+
+.. autoclass:: grammaropt.types.Float
    :members:

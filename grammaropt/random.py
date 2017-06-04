@@ -45,6 +45,29 @@ class RandomWalker(Walker):
         return rule.uniform_sample(self.rng)
 
 def optimize(func, walker, nb_iter=10):
+    """
+    Optimize a problem (evaluated using `func`) using a `RandomWalker`.
+
+    Parameters
+    =========
+
+    func : callable
+        take a str as input (the code) and return a scalar, the higher the better.
+
+    walker : RandomWalker
+
+    nb_iter : int
+        Total number of iterations
+
+    Returns
+    =======
+
+    tuple (codes, scores) where:
+        - `codes` is a list of str, where the i-th element is the code
+           evaluated in the i-th iteration
+        - `scores` is a list of scalars where the i-th element is the score
+           of `codes[i]` after evaluating with `func`.
+    """
     wl = walker
     X = []
     y = []

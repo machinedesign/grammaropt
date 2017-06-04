@@ -115,10 +115,6 @@ def _build_type_rules(types):
     return rules
 
 
-class StopExpansion(Exception):
-    pass
-
-
 class Walker:
     """
     Walkers are objects that do a random walk (deterministic walks
@@ -344,4 +340,8 @@ def _patched_type_match(self, text, pos , cache, error):
 
 
 def as_str(terminals):
+    """
+    converts a set of literals (either values or str) to a single str (concatenation of all the literals)
+    it is used to convert the trace obtained by a Walker (in `walker.terminals`) into a single str
+    """
     return ''.join(map(str, terminals))
