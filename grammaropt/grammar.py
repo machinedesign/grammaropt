@@ -8,6 +8,8 @@ from random import Random
 from copy import deepcopy
 from collections import deque
 from collections import namedtuple
+from functools import partial
+from functools import lru_cache
 
 from parsimonious.grammar import Grammar
 from parsimonious.expressions import Regex
@@ -76,6 +78,33 @@ def _extract_rules(rules, out=set()):
             out.add(rule)
             if isinstance(rule, Compound):
                 _extract_rules(rule.members, out=out)
+
+
+@lru_cache(maxsize=None)
+def rule_depth(rule):
+    return _rule_depth(rule, depths=None)
+
+
+def _rule_depth(rule, depths=None):
+    """
+    get the minimal number of production rules to reach a terminal, starting
+    from a rule `rule`.
+    TODO : should be replaced by dijkstra algo for more efficiency
+    """
+    if depths is None:
+        depths = {}
+    # detecting and deal with cycles
+    if rule in depths:
+        return depths[rule]
+    depths[rule] = float('inf')
+    if isinstance(rule, OneOf):
+        depth = 1 + min(map(partial(_rule_depth, depths=depths), rule.members))
+    elif isinstance(rule, Sequence):
+        depth = 1 + max(map(partial(_rule_depth, depths=depths), rule.members))
+    else:
+        depth = 0
+    depths[rule] = depth
+    return depth
 
 
 def _build_type_rules(types):
@@ -202,16 +231,23 @@ class Walker:
         # use only non-terminals if we are belom `min_depth`
         # (only when possible, otherwise, when there are no terminals use the given rules as is)
         if self.min_depth is not None and depth <= self.min_depth:
-            rulesf = [r for r in rules if isinstance(r, Compound)]
-            return rulesf if len(rulesf) else rules
+            nonterminal_rules = [r for r in rules if isinstance(r, Compound)]
+            return nonterminal_rules if len(nonterminal_rules) else rules
         # use only terminals if we are above `max_depth 
-        # (only when possible, otherwise, when there are no terminals use the given rules as is)
+        # (only when possible, otherwise, when there are no terminals use the given rules as is
+        #  and take the subset of rules with minimal rule depth (check _rule_depth))
         elif self.max_depth is not None and depth >= self.max_depth:
-            rulesf = [r for r in rules if not isinstance(r, Compound)]
-            if len(rulesf) == 0 and self.strict_depth_limit:
-                return []
+            terminal_rules = [r for r in rules if not isinstance(r, Compound)]
+            if len(terminal_rules) == 0:
+                if self.strict_depth_limit:
+                    return []
+                else:
+                    depths = list(map(rule_depth, rules))
+                    min_depth = min(depths)
+                    rules = [r for r, d in zip(rules, depths) if d == min_depth]
+                    return rules
             else:
-                return rulesf if len(rulesf) else rules
+                return terminal_rules
         else:
             return rules
 

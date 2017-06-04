@@ -54,10 +54,6 @@ def test_adapter():
     with pytest.raises(AssertionError):
         pr = Variable(torch.from_numpy(np.array([0.1, 0.1, 0.1])).view(1, -1))
         rnn.generate_next_token(pr)
-    # check assertion error when probas sum should > 0
-    with pytest.raises(AssertionError):
-        pr = Variable(torch.from_numpy(np.array([0., 0., 0., 0.])).view(1, -1))
-        rnn.generate_next_token(pr)
     
     # check if allowed has the correct behavior
     pr = Variable(torch.from_numpy(np.array([0.25, 0.25, 0.25, 0.25])).view(1, -1))

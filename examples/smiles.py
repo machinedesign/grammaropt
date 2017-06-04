@@ -62,7 +62,7 @@ rnn = RnnAdapter(model, tok_to_id)
 
 smiles = np.load('zinc_250k_subset.npz')['X']
 avg_loss = 0.
-smiles = smiles[0:100]
+smiles = smiles[0:1]
 
 max_depth = max(map(_get_max_depth, map(grammar.parse, smiles)))
 for epoch in range(10000):
@@ -78,7 +78,7 @@ for epoch in range(10000):
     if epoch % 1 == 0:
         print('avg loss : {:.4f}, loss : {:4f}'.format(avg_loss, loss.data[0]))
         # check if the generation works by generating from the RNN model
-        wl = RnnWalker(grammar=grammar, rnn=rnn, min_depth=1, max_depth=max_depth, strict_depth_limit=True)
+        wl = RnnWalker(grammar=grammar, rnn=rnn, min_depth=1, max_depth=max_depth, strict_depth_limit=False)
         wl.walk()
         expr = as_str(wl.terminals)
         print(expr, is_valid(expr))

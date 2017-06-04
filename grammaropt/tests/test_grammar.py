@@ -8,6 +8,7 @@ from grammaropt.grammar import extract_rules_from_grammar
 from grammaropt.grammar import Walker
 from grammaropt.grammar import DeterministicWalker
 from grammaropt.grammar import _Decision
+from grammaropt.grammar import _rule_depth
 from grammaropt.types import Int
 
 arith = r"""
@@ -85,3 +86,10 @@ def test_deterministic_walker():
         wl.walk()
         assert len(wl.decisions) == 9
         assert wl.terminals == ["x", "+", "cos", "(", "x", "+", 5, ")"]
+
+def test_rule_depth():
+    types = {"int": Int(1, 10)}
+    grammar = build_grammar(arith, types=types)
+    assert _rule_depth(grammar["S"]) == 2 # S -> T -> "x"
+    assert _rule_depth(grammar["T"]) == 1 # T -> "x"
+    assert _rule_depth(grammar["int"]) == 0

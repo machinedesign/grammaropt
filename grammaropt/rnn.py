@@ -119,11 +119,30 @@ class RnnAdapter:
     def generate_next_token(self, pr, allowed=None):
         pr = pr[0].data.clone()
         if allowed is not None:
+            assert len(allowed)
             full = set(self.tok_to_id.keys())
             forbidden = full - set(allowed)
             for tok in forbidden:
                 pr[self.tok_to_id[tok]] = 0.
         pr = pr.tolist()
+        # - the nan thing happened when I added a random
+        #   exploration (prop of time generate randomly), not sure
+        #   why
+        # - the second condition is to prevent cases
+        #   where the forbidden tokens have high proba
+        #   and the rest essiantially zero proba, it means
+        #   that pr will be close to zero
+        # - in both cases, solve the problem by generating
+        #   uniformly from the allowed tokens
+        if np.any(np.isnan(pr)) or math.isclose(sum(pr),  0):
+            if allowed:
+                for i in range(len(pr)):
+                    pr[i] = 0.
+                for al in allowed:
+                    pr[self.tok_to_id[al]] = 1.
+            else:
+                for i in range(len(pr)):
+                    pr[i] = 1.
         assert sum(pr) > 0
         assert len(pr) == len(self.tok_to_id)
         pr = _normalize(pr)
@@ -249,7 +268,7 @@ def _log_factorial(k):
 
 def _normalize(vals):
     """
-    Normalize a list of values so that they sum up to 1.
+    Normalize a list of POSITIVE or ZERO values so that they sum up to 1.
 
     Assume that a set of elements have the exact value of 0.
     Divide by the sum, the compute the sum of vals[0:-1] then
@@ -317,7 +336,7 @@ class RnnWalker(Walker):
     def _init_walk(self):
         super()._init_walk()
         self._input = None
-        self._state = None
+        self._state = None # in pytorch if the state is None, it will be initialized by zero
         self._decisions = []
     
     def next_rule(self, rules):
