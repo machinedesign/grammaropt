@@ -1,7 +1,7 @@
 """
 This is the base module where the grammar can be built
 and the base walkers are defined.
-See `Walker` to know more about walkerrs.
+See `Walker` to know more about walkers.
 """
 from types import MethodType
 from random import Random
