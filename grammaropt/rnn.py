@@ -48,11 +48,12 @@ class RnnModel(nn.Module):
         needed to sample from a `Type`. 
         
     """
-    def __init__(self, vocab_size=10, emb_size=128, hidden_size=128, nb_features=1):
+    def __init__(self, vocab_size=10, emb_size=128, hidden_size=128, nb_features=1, cuda=False):
         super().__init__()   
         self.vocab_size = vocab_size
         self.emb_size = emb_size
         self.hidden_size = hidden_size
+        self.cuda = cuda
 
         self.emb = nn.Embedding(vocab_size, emb_size)
         self.lstm = nn.LSTM(emb_size, hidden_size, batch_first=True)
@@ -60,6 +61,8 @@ class RnnModel(nn.Module):
         self.out_value = nn.Linear(hidden_size, nb_features)
 
     def next_token(self, inp, state):
+        if self.cuda:
+            inp = inp.cuda()
         x = self.emb(inp)
         _, state = self.lstm(x, state)
         h, c = state
@@ -68,6 +71,8 @@ class RnnModel(nn.Module):
         return o, state
     
     def next_value(self, inp, state):
+        if self.cuda:
+            inp = inp.cuda()
         x = self.emb(inp)
         _, state = self.lstm(x, state)
         h, c = state
@@ -134,6 +139,7 @@ class RnnAdapter:
         #   that pr will be close to zero
         # - in both cases, solve the problem by generating
         #   uniformly from the allowed tokens
+        oopr = pr
         if np.any(np.isnan(pr)) or math.isclose(sum(pr),  0):
             if allowed:
                 for i in range(len(pr)):
@@ -145,9 +151,14 @@ class RnnAdapter:
                     pr[i] = 1.
         assert sum(pr) > 0
         assert len(pr) == len(self.tok_to_id)
+        opr = pr
         pr = _normalize(pr)
         ids = list(range(len(pr)))
-        next_id = self.rng.choice(ids, p=pr)
+        try:
+            next_id = self.rng.choice(ids, p=pr)
+        except Exception:
+            import pdb
+            pdb.set_trace()
         tok = self.id_to_tok[next_id]
         return tok
 
@@ -243,6 +254,7 @@ class RnnAdapter:
         x = Variable(x)
         return x
 
+
 def _torch_logp_normal(val, mu, std):
     from scipy.stats import norm
     logp = -0.5 * ((val - mu) ** 2) / std**2 - torch.log(std) - math.log(math.sqrt(2. * math.pi))
@@ -269,6 +281,8 @@ def _log_factorial(k):
 def _normalize(vals):
     """
     Normalize a list of POSITIVE or ZERO values so that they sum up to 1.
+    If all the values are zero, the array is returned as is, in a non-normalized
+    manner, to prevent mistakes.
 
     Assume that a set of elements have the exact value of 0.
     Divide by the sum, the compute the sum of vals[0:-1] then
@@ -281,25 +295,29 @@ def _normalize(vals):
     Parameters
     ----------
 
-    vals : list of float
+    vals : list or np.array of float
 
     Returns
     -------
 
-    list of float
+    np.array of float
     
     """
-    s = sum(vals)
-    vals = [v / s for v in vals]
-    ivals = [(i, v) for i, v in enumerate(vals) if v > 0]
-    first = sum(v for i, v in ivals[0:-1])
-    if len(ivals) > 1:
-        i, _ = ivals[-1]
-        ivals[-1] = (i, 1 - first)
-    vals = [0. for _ in range(len(vals))]
-    for i, v in ivals:
-        vals[i] = v
-    return vals
+    vals = np.array(vals, dtype='float64')
+    if len(vals) == 0:
+        raise ValueError('Cannot normalize an empty vector.')
+    if vals.sum() == 0:
+        raise ValueError('Cannot normalize to 1 a vector of zeros.')
+    elif len(vals) > 1:
+        vals /= vals.sum()
+        pos = vals > 0
+        if len(vals[vals == 0]):
+            vals[pos] = _normalize(vals[pos])
+        else:
+            vals[-1] = 1.0 - vals[0:-1].sum()
+        return vals
+    else:
+        return np.array([1.])
 
 
 _Decision = namedtuple('Decision', ['action', 'given', 'pred', 'gen'])

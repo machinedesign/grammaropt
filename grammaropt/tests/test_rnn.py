@@ -130,11 +130,15 @@ def test_logp():
  
 
 def test_normalize():
-    assert _normalize([0, 0, 10]) == [0, 0, 1.]
-    assert _normalize([10, 0, 0, 10]) == [0.5, 0, 0, 0.5]
-    assert _normalize([0, 10, 0, 10]) == [0, 0.5, 0, 0.5]
-    assert _normalize([0, 10, 0, 10, 0]) == [0, 0.5, 0, 0.5, 0]
-    assert _normalize([0, 10, 0, 20, 0, 70]) == [0, 0.1, 0, 0.2, 0, 0.7]
+    assert np.all(_normalize([0, 0, 10]) == np.array([0, 0, 1.]))
+    assert np.all(_normalize([10, 0, 0, 10]) == np.array([0.5, 0, 0, 0.5]))
+    assert np.all(_normalize([0, 10, 0, 10]) == np.array([0, 0.5, 0, 0.5]))
+    assert np.all(_normalize([0, 10, 0, 10, 0]) == np.array([0, 0.5, 0, 0.5, 0]))
+    assert np.all(_normalize([0, 10, 0, 20, 0, 70]) == np.array([0, 0.1, 0, 0.2, 0, 0.7]))
+    with pytest.raises(ValueError):
+        _normalize([0, 0, 0, 0])
+    with pytest.raises(ValueError):
+        _normalize([])
 
 
 def test_rnn_walker():
