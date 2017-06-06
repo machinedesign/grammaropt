@@ -45,23 +45,26 @@ class RnnModel(nn.Module):
     nb_features : int
         number of real-valued features to predict when a value is needed.
         Practically, it corresponds to the number of statistics to predict 
-        needed to sample from a `Type`. 
+        needed to sample from a `Type`.
+
+    use_cuda : bool
+        if True, use cuda.
         
     """
-    def __init__(self, vocab_size=10, emb_size=128, hidden_size=128, nb_features=1, cuda=False):
+    def __init__(self, vocab_size=10, emb_size=128, hidden_size=128, num_layers=1, nb_features=1, use_cuda=False):
         super().__init__()   
         self.vocab_size = vocab_size
         self.emb_size = emb_size
         self.hidden_size = hidden_size
-        self.cuda = cuda
+        self.use_cuda = use_cuda
 
         self.emb = nn.Embedding(vocab_size, emb_size)
-        self.lstm = nn.LSTM(emb_size, hidden_size, batch_first=True)
+        self.lstm = nn.LSTM(emb_size, hidden_size, batch_first=True, num_layers=num_layers)
         self.out_token  = nn.Linear(hidden_size, vocab_size)
         self.out_value = nn.Linear(hidden_size, nb_features)
 
     def next_token(self, inp, state):
-        if self.cuda:
+        if self.use_cuda:
             inp = inp.cuda()
         x = self.emb(inp)
         _, state = self.lstm(x, state)
@@ -71,7 +74,7 @@ class RnnModel(nn.Module):
         return o, state
     
     def next_value(self, inp, state):
-        if self.cuda:
+        if self.use_cuda:
             inp = inp.cuda()
         x = self.emb(inp)
         _, state = self.lstm(x, state)
@@ -115,9 +118,10 @@ class RnnAdapter:
         self.begin_tok = begin_tok
         self.rng = np.random.RandomState(random_state)
 
-    def predict_next_token(self, inp, state):
+    def predict_next_token(self, inp, state, temperature=1.0):
         x = self._preprocess_input(inp)
         o, state = self.model.next_token(x, state)
+        o = o / temperature
         pr = nn.Softmax()(o)
         return pr, state
 
@@ -139,7 +143,6 @@ class RnnAdapter:
         #   that pr will be close to zero
         # - in both cases, solve the problem by generating
         #   uniformly from the allowed tokens
-        oopr = pr
         if np.any(np.isnan(pr)) or math.isclose(sum(pr),  0):
             if allowed:
                 for i in range(len(pr)):
@@ -151,14 +154,9 @@ class RnnAdapter:
                     pr[i] = 1.
         assert sum(pr) > 0
         assert len(pr) == len(self.tok_to_id)
-        opr = pr
         pr = _normalize(pr)
         ids = list(range(len(pr)))
-        try:
-            next_id = self.rng.choice(ids, p=pr)
-        except Exception:
-            import pdb
-            pdb.set_trace()
+        next_id = self.rng.choice(ids, p=pr)
         tok = self.id_to_tok[next_id]
         return tok
 
@@ -345,11 +343,16 @@ class RnnWalker(Walker):
         when a choice should be made.
         If False, even when `max_depth` is reached, choose terminals when terminals
         are available, otherwise keep applying production rules.
-
+    temperature : float (between 0 and +inf)
+        controls diversity of samples of RNN. The scores (before applying softmax)
+        are divided by the `temperature`.
+        If `temperature` is close to 0   : make it more likely to choose the token with the highest proba
+        If `temperature` is close to inf : make the probability distribution uniform
     """
-    def __init__(self, grammar, rnn, min_depth=None, max_depth=None, strict_depth_limit=False):
+    def __init__(self, grammar, rnn, min_depth=None, max_depth=None, strict_depth_limit=False, temperature=1.0):
         super().__init__(grammar, min_depth=min_depth, max_depth=max_depth, strict_depth_limit=strict_depth_limit)
         self.rnn = rnn
+        self.temperature = temperature
 
     def _init_walk(self):
         super()._init_walk()
@@ -358,7 +361,7 @@ class RnnWalker(Walker):
         self._decisions = []
     
     def next_rule(self, rules):
-        pr, self._state = self.rnn.predict_next_token(self._input, self._state)
+        pr, self._state = self.rnn.predict_next_token(self._input, self._state, temperature=self.temperature)
         rule = self._generate_rule(pr, rules)
         self._input = rule
         self._decisions.append(_Decision(action='rule', given=rules, pred=pr, gen=rule))
