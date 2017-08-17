@@ -1,3 +1,12 @@
+"""
+======================================================
+Torch model
+======================================================
+
+Example of using a Torch RNN model along with Vectorize to
+fit a set of string expressions.
+"""
+
 import numpy as np
 from itertools import product
 

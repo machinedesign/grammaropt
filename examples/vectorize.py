@@ -1,3 +1,13 @@
+"""
+======================================================
+Vectorize
+======================================================
+
+Example of using Vectorize to transform a set of
+string expressions into a list of list of integers.
+"""
+
+
 from grammaropt.grammar import build_grammar
 from grammaropt.grammar import Vectorizer
 

@@ -1,3 +1,13 @@
+"""
+======================================================
+Fit
+======================================================
+
+Example of fitting a set of string expressions into
+an RNN model.
+"""
+
+
 import sys
 
 import torch

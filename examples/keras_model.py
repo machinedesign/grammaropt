@@ -1,3 +1,12 @@
+"""
+======================================================
+Keras model
+======================================================
+
+Example of using a keras RNN model along with Vectorize to
+fit a set of string expressions.
+"""
+
 from itertools import product
 import numpy as np
 from keras.layers import LSTM, Input, TimeDistributed, Activation, Embedding, Dense

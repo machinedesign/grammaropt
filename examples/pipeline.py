@@ -1,3 +1,11 @@
+"""
+======================================================
+Pipeline
+======================================================
+
+Simple example of optimizing a scikit-learn pipeline
+"""
+
 import warnings
 
 import pandas as pd

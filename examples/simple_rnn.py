@@ -1,3 +1,11 @@
+"""
+======================================================
+Simple RNN
+======================================================
+
+Simple example of using RNNs.
+"""
+
 import pandas as pd
 import numpy as np
 

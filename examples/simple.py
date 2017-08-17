@@ -1,3 +1,11 @@
+"""
+======================================================
+Simple
+======================================================
+
+Simple example of using random uniform generation.
+"""
+
 import sys
 
 from grammaropt.grammar import build_grammar

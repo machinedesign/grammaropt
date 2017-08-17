@@ -11,6 +11,9 @@ Grammar
 
 .. autofunction:: grammaropt.grammar.as_str
 
+.. autoclass:: grammaropt.grammar.Vectorize
+
+
 Walkers
 =======
 

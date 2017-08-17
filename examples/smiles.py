@@ -1,3 +1,12 @@
+"""
+======================================================
+SMILES
+======================================================
+
+Example of fitting SMILES, a representation of 
+molecular graphs.
+"""
+
 import numpy as np
 import pandas as pd
 

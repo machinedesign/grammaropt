@@ -5,6 +5,7 @@ Welcome to grammaropt documentation!
        :maxdepth: 2
 
        api
+       auto_examples/index
        ...
 
 Indices and tables
