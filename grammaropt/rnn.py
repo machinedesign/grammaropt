@@ -59,6 +59,14 @@ class RnnModel(nn.Module):
         self.lstm = nn.LSTM(emb_size, hidden_size, batch_first=True, num_layers=num_layers)
         self.out_token  = nn.Linear(hidden_size, vocab_size)
         self.out_value = nn.Linear(hidden_size, nb_features)
+    
+    def forward(self, inp):
+        x = self.emb(inp)
+        o, _ = self.lstm(x)
+        o = o.contiguous()
+        o = o.view(o.size(0) * o.size(1), o.size(2))
+        o = self.out_token(o)
+        return o
 
     def next_token(self, inp, state):
         if self.use_cuda:

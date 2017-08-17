@@ -387,16 +387,16 @@ class Vectorizer:
         self.pad = pad
         self.max_length = max_length
         self._rules = None
-        self._tok_to_id = None
+        self.tok_to_id = None
     
     def _init(self):
         if not self._rules:
             self._rules = extract_rules_from_grammar(self.grammar)
-        if not self._tok_to_id:
-            self._tok_to_id = {}
-            self._tok_to_id[NULL_SYMBOL] = 0
-            self._tok_to_id.update({r: i + 1 for i, r in enumerate(self._rules)})
-            self._id_to_tok = {i: r for r, i in self._tok_to_id.items()}
+        if not self.tok_to_id:
+            self.tok_to_id = {}
+            self.tok_to_id[NULL_SYMBOL] = 0
+            self.tok_to_id.update({r: i + 1 for i, r in enumerate(self._rules)})
+            self._id_to_tok = {i: r for r, i in self.tok_to_id.items()}
 
     def transform(self, doc):
         """
@@ -428,7 +428,7 @@ class Vectorizer:
         wl.walk()
         for decision in wl.decisions:
             assert isinstance(decision.choice, Expression), "Value-kind decisions are not supported"
-        return [self._tok_to_id[decision.choice] for decision in wl.decisions]
+        return [self.tok_to_id[decision.choice] for decision in wl.decisions]
 
     def inverse_transform(self, doc):
         """
