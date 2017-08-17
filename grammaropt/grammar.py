@@ -4,15 +4,13 @@ and the base walkers are defined.
 See `Walker` to know more about walkers.
 """
 from types import MethodType
-from random import Random
-from copy import deepcopy
 from collections import deque
 from collections import namedtuple
 from functools import partial
 from functools import lru_cache
 
 from parsimonious.grammar import Grammar
-from parsimonious.expressions import Regex
+from parsimonious.expressions import Expression
 from parsimonious.expressions import Sequence
 from parsimonious.expressions import OneOf
 from parsimonious.expressions import Compound
@@ -224,26 +222,16 @@ class Walker:
                 self.terminals.append(val)
     
     def _filter_by_depth(self, rules, depth):
-        # use only non-terminals if we are belom `min_depth`
-        # (only when possible, otherwise, when there are no terminals use the given rules as is)
         if self.min_depth is not None and depth <= self.min_depth:
-            nonterminal_rules = [r for r in rules if isinstance(r, Compound)]
-            return nonterminal_rules if len(nonterminal_rules) else rules
-        # use only terminals if we are above `max_depth 
-        # (only when possible, otherwise, when there are no terminals use the given rules as is
-        #  and take the subset of rules with minimal rule depth (check _rule_depth))
+            depths = list(map(rule_depth, rules))
+            max_depth = max(depths)
+            rules = [r for r, d in zip(rules, depths) if d == max_depth]
+            return rules
         elif self.max_depth is not None and depth >= self.max_depth:
-            terminal_rules = [r for r in rules if not isinstance(r, Compound)]
-            if len(terminal_rules) == 0:
-                if self.strict_depth_limit:
-                    return []
-                else:
-                    depths = list(map(rule_depth, rules))
-                    min_depth = min(depths)
-                    rules = [r for r, d in zip(rules, depths) if d == min_depth]
-                    return rules
-            else:
-                return terminal_rules
+            depths = list(map(rule_depth, rules))
+            min_depth = min(depths)
+            rules = [r for r, d in zip(rules, depths) if d == min_depth]
+            return rules
         else:
             return rules
 
@@ -345,3 +333,120 @@ def as_str(terminals):
     it is used to convert the trace obtained by a Walker (in `walker.terminals`) into a single str
     """
     return ''.join(map(str, terminals))
+
+
+class DecisionsWalker(Walker):
+    """
+    simple Walker which is used by `Vectorizer` to recover the terminals
+    from a sequence of `decisions` obtained from `DeterministicWalker`.
+    From the terminals, it is possible to obtain the string expression
+    by concatenating them (the terminals).
+    """
+    def __init__(self, grammar, decisions):
+        super().__init__(grammar, min_depth=None, max_depth=None, strict_depth_limit=False)
+        self.decisions = decisions
+    
+    def _init_walk(self):
+        super()._init_walk()
+        self._external_decisions = self.decisions[::-1]
+    
+    def next_rule(self, rules):
+        parent_rule, rule = self._external_decisions.pop()
+        return rule
+
+    def next_value(self, stats, rule):
+        rule_, val = self._external_decisions.pop()
+        return val
+
+
+NULL_SYMBOL = None
+class Vectorizer:
+    """
+    a class that is used to vectorize a list of string expressions
+    to a list of lists, where each element represent a string expression
+    using rules IDs (integers), where each rule ID correspond to a decision
+    of a rule according to the grammar. `Vectorizer` can be used to train
+    sequence models (e.g., RNNs) without using the ones given in the
+    framework (that is, in the module `grammaropt.rnn`), if this is 
+    desired.
+
+    Parameters
+    ----------
+
+    pad : bool
+        if True, add the NULL padding character to the right up to
+        `max_length`, that is, each transformed element will have
+        exactly the length `max_length` if pad is used.
+
+    max_length : int or None
+        used if `pad` is True, it specifies the length
+        that a all transformed elements will have.
+    """
+    def __init__(self, grammar, pad=True, max_length=None):
+        self.grammar = grammar
+        self.pad = pad
+        self.max_length = max_length
+        self._rules = None
+        self._tok_to_id = None
+    
+    def _init(self):
+        if not self._rules:
+            self._rules = extract_rules_from_grammar(self.grammar)
+        if not self._tok_to_id:
+            self._tok_to_id = {}
+            self._tok_to_id[NULL_SYMBOL] = 0
+            self._tok_to_id.update({r: i + 1 for i, r in enumerate(self._rules)})
+            self._id_to_tok = {i: r for r, i in self._tok_to_id.items()}
+
+    def transform(self, doc):
+        """
+        transforms takes as input a list of strings, and returns
+        a list of list of integers.
+        if `max_length` is not given (that is, it is None) and pad is True,
+        then `max_length` will be the maximum length of the strings in
+        `doc`.
+
+        Parameters
+        ----------
+
+        doc : list of str
+        """
+        self._init()
+        doc = [self._transform_single(expr) for expr in doc]
+        if self.pad:
+            if self.max_length is None:
+                max_length = max(map(len, doc))
+            else:
+                max_length = self.max_length
+            for expr in doc:
+                assert len(expr) <= max_length, "All expressions of `doc` must be smaller than max_length={}, but {} is bigger".format(max_length, expr)
+            doc = [expr + [0] * (max_length - len(expr)) for expr in doc]
+        return doc
+
+    def _transform_single(self, expr):
+        wl = DeterministicWalker(self.grammar, expr)
+        wl.walk()
+        for decision in wl.decisions:
+            assert isinstance(decision.choice, Expression), "Value-kind decisions are not supported"
+        return [self._tok_to_id[decision.choice] for decision in wl.decisions]
+
+    def inverse_transform(self, doc):
+        """
+        inverse_transform is the inverse operation of transform.
+        It takes as input a list of list of ints, and
+        returns a list of strings.
+
+        Parameters
+        ----------
+
+        doc : list of list of int
+        """
+        self._init()
+        return [self._inverse_transform_single(expr) for expr in doc]
+
+    def _inverse_transform_single(self, expr):
+        expr = [symb for symb in expr if symb is not NULL_SYMBOL]
+        decisions = [_Decision(rule=None, choice=self._id_to_tok[symb]) for symb in expr]
+        wl = DecisionsWalker(self.grammar, decisions)
+        wl.walk()
+        return as_str(wl.terminals)

@@ -7,12 +7,9 @@ from collections import namedtuple
 import numpy as np
 import math
 
-import torch.nn.init as init
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-
-from parsimonious.expressions import Compound, Sequence
 
 from .grammar import Walker
 from .grammar import DeterministicWalker
@@ -175,6 +172,7 @@ class RnnAdapter:
             val = self.rng.poisson(mu)
             val = min(val, tok.high)
             val = max(val, tok.low)
+            return val
         elif type(tok) == Float:
             """
             # beta distrib
@@ -196,8 +194,7 @@ class RnnAdapter:
             return val
         else:
             raise TypeError('Unrecognized type : {}'.format(tok))
-        return val
-
+    
     def token_logp(self, tok, pr):
         """
         compute the log probability of a Token `tok` from a a set
