@@ -223,11 +223,15 @@ class Walker:
     
     def _filter_by_depth(self, rules, depth):
         if self.min_depth is not None and depth <= self.min_depth:
+            if self.strict_depth_limit:
+                return []
             depths = list(map(rule_depth, rules))
             max_depth = max(depths)
             rules = [r for r, d in zip(rules, depths) if d == max_depth]
             return rules
         elif self.max_depth is not None and depth >= self.max_depth:
+            if self.strict_depth_limit:
+                return []
             depths = list(map(rule_depth, rules))
             min_depth = min(depths)
             rules = [r for r, d in zip(rules, depths) if d == min_depth]

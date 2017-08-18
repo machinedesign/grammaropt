@@ -74,7 +74,7 @@ class RnnModel(nn.Module):
         x = self.emb(inp)
         _, state = self.lstm(x, state)
         h, c = state
-        h = h.view(h.size(0) * h.size(1), h.size(2))
+        h = h[-1] # last layer
         o = self.out_token(h)
         return o, state
     
@@ -84,7 +84,7 @@ class RnnModel(nn.Module):
         x = self.emb(inp)
         _, state = self.lstm(x, state)
         h, c = state
-        h = h.view(h.size(0) * h.size(1), h.size(2))
+        h = h[-1] # last layer
         o = self.out_value(h)
         return o, state
 
@@ -128,17 +128,10 @@ class RnnAdapter:
         o, state = self.model.next_token(x, state)
         if temperature > 0:
             o = o / temperature
-            pr = nn.Softmax()(o)
-        else:
-            # when temperature is 0, it is equivalent
-            # to take the argmax
-            pr = o.clone()
-            _, ids = pr.max(1)
-            pr.data.fill_(0.)
-            pr.data[0, ids.data[0]] = 1.0
+        pr = nn.Softmax()(o)
         return pr, state
 
-    def generate_next_token(self, pr, allowed=None):
+    def generate_next_token(self, pr, allowed=None, temperature=1.0):
         pr = pr[0].data.clone()
         if allowed is not None:
             assert len(allowed)
@@ -168,6 +161,10 @@ class RnnAdapter:
         assert sum(pr) > 0
         assert len(pr) == len(self.tok_to_id)
         pr = _normalize(pr)
+        if temperature == 0.0:
+            idbest = np.argmax(pr)
+            pr = [0.0] * len(pr)
+            pr[idbest] = 1.0
         ids = list(range(len(pr)))
         next_id = self.rng.choice(ids, p=pr)
         tok = self.id_to_tok[next_id]
@@ -381,7 +378,7 @@ class RnnWalker(Walker):
         return rule
     
     def _generate_rule(self, pr, rules):
-        return self.rnn.generate_next_token(pr, allowed=rules)
+        return self.rnn.generate_next_token(pr, allowed=rules, temperature=self.temperature)
 
     def next_value(self, rule):
         stats, _ = self.rnn.predict_next_value(self._input, self._state)
