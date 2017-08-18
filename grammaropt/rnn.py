@@ -126,8 +126,16 @@ class RnnAdapter:
     def predict_next_token(self, inp, state, temperature=1.0):
         x = self._preprocess_input(inp)
         o, state = self.model.next_token(x, state)
-        o = o / temperature
-        pr = nn.Softmax()(o)
+        if temperature > 0:
+            o = o / temperature
+            pr = nn.Softmax()(o)
+        else:
+            # when temperature is 0, it is equivalent
+            # to take the argmax
+            pr = o.clone()
+            _, ids = pr.max(1)
+            pr.data.fill_(0.)
+            pr.data[0, ids.data[0]] = 1.0
         return pr, state
 
     def generate_next_token(self, pr, allowed=None):
