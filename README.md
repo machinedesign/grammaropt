@@ -32,7 +32,11 @@ rules = """
 
 grammar = build_grammar(rules)
 ```
-An example instance from the above defined grammar can be : "make_pipeline(PCA(n_components=7),LogisticRegression())"
+An example instance from the above defined grammar could be :
+
+```python
+make_pipeline(PCA(n_components=7),LogisticRegression())
+```
 
 ## 2) Define the evaluation function
 
