@@ -35,7 +35,7 @@ grammar = build_grammar(rules)
 An example instance from the above defined grammar could be :
 
 ```python
-make_pipeline(PCA(n_components=7),LogisticRegression())
+make_pipeline(PCA(n_components=30),LogisticRegression())
 ```
 
 ## 2) Define the evaluation function
