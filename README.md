@@ -1,4 +1,4 @@
-# grammaropt
+# Grammropt
 
 Grammaropt is a python framework for defining domain specific languages (DSLs) using context-free grammars in order
 to perform optimization over the space of instances of the DSL. 
@@ -79,6 +79,48 @@ print('Best code : '.format(best_code)
 print('Best score : {}'.format(best_score))
 ```
 
+## Putting everything together
 
+```python
+import numpy as np
 
+from sklearn import datasets
+from sklearn.model_selection import cross_val_score
 
+from grammaropt.grammar import build_grammar
+from grammaropt.random import RandomWalker
+from grammaropt.random import optimize
+
+rules = """
+    pipeline = "make_pipeline" "(" elements "," estimator ")"
+    elements = (element "," elements) / element
+    element = pca / rf
+    pca = "PCA" "(" "n_components" "=" int ")"
+    estimator = rf / logistic
+    logistic = "LogisticRegression" "(" ")"
+    rf = "RandomForestClassifier" "(" "max_depth" "=" int "," "max_features" "=" float ")"
+"""
+
+grammar = build_grammar(rules)
+
+digits = datasets.load_digits()
+X, y = digits.data, digits.target
+
+def evaluate(code):
+    clf = eval(code)
+    try:
+        scores = cross_val_score(clf, X, y, cv=5)
+    except Exception:
+        return 0.
+    else:
+        return float(np.mean(scores))
+
+walker = RandomWalker(grammar)
+codes, scores = optimize(evaluate, walker, nb_iter=10)
+
+idx = np.argmax(scores)
+best_code = codes[idx]
+best_score = scores[idx]
+print('Best code : '.format(best_code)
+print('Best score : {}'.format(best_score))
+```
