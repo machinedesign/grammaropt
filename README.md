@@ -121,6 +121,6 @@ codes, scores = optimize(evaluate, walker, nb_iter=10)
 idx = np.argmax(scores)
 best_code = codes[idx]
 best_score = scores[idx]
-print('Best code : '.format(best_code)
+print('Best code : {}'.format(best_code)
 print('Best score : {}'.format(best_score))
 ```
