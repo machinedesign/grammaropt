@@ -1,4 +1,4 @@
-# Grammropt
+# GrammarOpt
 
 Grammaropt is a python framework for defining domain specific languages (DSLs) using context-free grammars in order
 to perform optimization over the space of instances of the DSL. 
