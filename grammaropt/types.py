@@ -30,6 +30,7 @@ class Int(Type):
         self.low = low
         self.high = high
         self.re = re.compile('[0-9]+')#TODO do the actual regex
+        self.identity_tuple = (low, high)
     
     def uniform_sample(self, rng):
         # assumes rng is `np.random.Random` rather than `random.Random`
@@ -53,6 +54,7 @@ class Float(Type):
         self.low = low
         self.high = high
         self.re = re.compile('[0-9]+\.[0-9]+')#TODO do the actual regex
+        self.identity_tuple = (low, high)
     
     def uniform_sample(self, rng):
         return rng.uniform(self.low, self.high)

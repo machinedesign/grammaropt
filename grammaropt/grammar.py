@@ -7,7 +7,6 @@ from types import MethodType
 from collections import deque
 from collections import namedtuple
 from functools import partial
-from functools import lru_cache
 
 from parsimonious.grammar import Grammar
 from parsimonious.expressions import Expression
@@ -77,8 +76,8 @@ def _extract_rules(rules, out=set()):
             if isinstance(rule, Compound):
                 _extract_rules(rule.members, out=out)
 
-
-@lru_cache(maxsize=None)
+#TODO :@lru_cache(max_size=None) was removed because it was causing
+# recursion error with parsimonious 0.8
 def rule_depth(rule):
     return _rule_depth(rule, depths=None)
 
@@ -95,6 +94,7 @@ def _rule_depth(rule, depths=None):
     if rule in depths:
         return depths[rule]
     depths[rule] = float('inf')
+    print(rule)
     if isinstance(rule, OneOf):
         depth = 1 + min(map(partial(_rule_depth, depths=depths), rule.members))
     elif isinstance(rule, Sequence):
@@ -314,6 +314,7 @@ def _patched_oneof_match(self, text, pos, cache, error):
         node = m.match_core(text, pos, cache, error)
         if node is not None:
             node = Node(self.name, text, pos, node.end, children=[node])
+            node = _Wrapper(node) # proxy class to bypass __slots__ of Node
             node.parent_rule = self # newly addde line
             node.rule = m # newly added line
             return node
@@ -326,6 +327,7 @@ def _patched_type_match(self, text, pos , cache, error):
     if m is not None:
         span = m.span()
         node = RegexNode(self.name, text, pos, pos + span[1] - span[0])
+        node = _Wrapper(node) # proxy class to bypass __slots__ of RegexNode
         node.match = m  # TODO: A terrible idea for cache size?
         node.parent_rule = self # newly added line
     return node
@@ -454,3 +456,29 @@ class Vectorizer:
         wl = DecisionsWalker(self.grammar, decisions)
         wl.walk()
         return as_str(wl.terminals)
+
+class _Wrapper(object):
+    '''
+    Source : http://code.activestate.com/recipes/577555-object-wrapper-class/
+    Object wrapper class.
+    This a wrapper for objects. It is initialiesed with the object to wrap
+    and then proxies the unhandled getattribute methods to it.
+    Other classes are to inherit from it.
+    '''
+    def __init__(self, obj):
+        '''
+        Wrapper constructor.
+        @param obj: object to wrap
+        '''
+        # wrap the object
+        self._wrapped_obj = obj
+
+    def __getattr__(self, attr):
+        # see if this object has attr
+        # NOTE do not use hasattr, it goes into
+        # infinite recurrsion
+        if attr in self.__dict__:
+            # this object has it
+            return getattr(self, attr)
+        # proxy to the wrapped object
+        return getattr(self._wrapped_obj, attr)
