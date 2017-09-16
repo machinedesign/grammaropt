@@ -6,55 +6,67 @@ Grammar
 
 
 .. autofunction:: grammaropt.grammar.build_grammar
+    :members:
 
 .. autofunction:: grammaropt.grammar.extract_rules_from_grammar
+    :members:
 
 .. autofunction:: grammaropt.grammar.as_str
+    :members:
+
+
 
 .. autoclass:: grammaropt.grammar.Vectorize
+    :members:
 
 
 Walkers
 =======
 
 .. autoclass:: grammaropt.grammar.Walker
-   :members:
+    :members:
 
 .. autoclass:: grammaropt.grammar.DeterministicWalker
-   :members:
+    :members:
 
 .. autoclass:: grammaropt.rnn.RnnWalker
-   :members:
+    :members:
 
 .. autoclass:: grammaropt.rnn.DeterministicRnnWalker
-   :members:
+    :members:
 
 Adapters
 ========
 
 .. autoclass:: grammaropt.rnn.RnnAdapter
+    :members:
+
 
 Models
 ======
 
 .. autoclass:: grammaropt.rnn.RnnModel
+    :members:
 
 
 Optimizers
 ==========
 
 .. autofunction:: grammaropt.random.optimize
+    :members:
 
 .. autofunction:: grammaropt.rnn.optimize
+    :members:
+
 
 Types
 =====
 
 .. autoclass:: grammaropt.types.Type
-   :members:
+    :members:
 
 .. autoclass:: grammaropt.types.Int
-   :members:
+    :members:
 
 .. autoclass:: grammaropt.types.Float
-   :members:
+    :members:

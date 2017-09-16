@@ -94,7 +94,6 @@ def _rule_depth(rule, depths=None):
     if rule in depths:
         return depths[rule]
     depths[rule] = float('inf')
-    print(rule)
     if isinstance(rule, OneOf):
         depth = 1 + min(map(partial(_rule_depth, depths=depths), rule.members))
     elif isinstance(rule, Sequence):
