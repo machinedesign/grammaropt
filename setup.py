@@ -23,5 +23,6 @@ setup(
     platforms='any',
     packages=['grammaropt'],
     requires=['parsimonious', 'numpy', 'pytorch'],
+    install_requires=['parsimonious', 'numpy', 'pytorch'],
     py_modules=['grammaropt'],
 )
