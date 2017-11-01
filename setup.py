@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="grammaropt",
-    version="0.1",
+    version="0.1.1",
     author="mehdi cherti",
     author_email="mehdicherti@gmail.com",
     description=(""),
@@ -22,7 +22,7 @@ setup(
                  'Operating System :: MacOS'],
     platforms='any',
     packages=['grammaropt'],
-    requires=['parsimonious', 'numpy', 'pytorch'],
-    install_requires=['parsimonious', 'numpy', 'pytorch'],
+    requires=['parsimonious', 'numpy'],
+    install_requires=['parsimonious', 'numpy'], #pytorch should be installed manually
     py_modules=['grammaropt'],
 )
