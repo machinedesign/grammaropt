@@ -19,8 +19,8 @@ from grammaropt.rnn import _torch_logp_beta
 from grammaropt.grammar import DeterministicWalker
 from grammaropt.grammar import extract_rules_from_grammar
 from grammaropt.grammar import build_grammar
-from grammaropt.types import Int
-from grammaropt.types import Float
+from grammaropt.terminal_types import Int
+from grammaropt.terminal_types import Float
 
 import torch
 from torch.autograd import Variable

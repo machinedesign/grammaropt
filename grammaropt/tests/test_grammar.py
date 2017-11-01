@@ -10,7 +10,7 @@ from grammaropt.grammar import DeterministicWalker
 from grammaropt.grammar import _Decision
 from grammaropt.grammar import _rule_depth
 from grammaropt.grammar import Vectorizer
-from grammaropt.types import Int
+from grammaropt.terminal_types import Int
 
 arith = r"""
     S = (T "+" S) / (T "*" S) / (T "/" S) / T

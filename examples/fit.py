@@ -16,7 +16,7 @@ from grammaropt.grammar import build_grammar
 from grammaropt.grammar import DeterministicWalker
 from grammaropt.grammar import extract_rules_from_grammar
 from grammaropt.grammar import as_str
-from grammaropt.types import Int
+from grammaropt.terminal_types import Int
 from grammaropt.rnn import RnnModel
 from grammaropt.rnn import RnnAdapter
 from grammaropt.rnn import RnnWalker

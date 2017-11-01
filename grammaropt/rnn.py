@@ -15,8 +15,8 @@ from .grammar import Walker
 from .grammar import DeterministicWalker
 from .grammar import as_str
 
-from .types import Int
-from .types import Float
+from .terminal_types import Int
+from .terminal_types import Float
 
 
 class RnnModel(nn.Module):

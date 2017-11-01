@@ -11,7 +11,7 @@ import sys
 from grammaropt.grammar import build_grammar
 from grammaropt.grammar import as_str
 
-from grammaropt.types import Int
+from grammaropt.terminal_types import Int
 from grammaropt.random import RandomWalker
 
 

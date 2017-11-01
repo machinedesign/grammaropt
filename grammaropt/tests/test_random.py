@@ -2,7 +2,7 @@ from grammaropt.grammar import build_grammar
 from grammaropt.grammar import extract_rules_from_grammar
 from grammaropt.random import RandomWalker
 from grammaropt.random import optimize
-from grammaropt.types import Int
+from grammaropt.terminal_types import Int
 
 arith = r"""
     S = (T "+" S) / (T "*" S) / (T "/" S) / T

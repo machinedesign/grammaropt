@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="grammaropt",
-    version="0.1.1",
+    version="0.1.3",
     author="mehdi cherti",
     author_email="mehdicherti@gmail.com",
     description=(""),

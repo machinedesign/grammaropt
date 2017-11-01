@@ -24,7 +24,7 @@ from grammaropt.grammar import build_grammar
 from grammaropt.grammar import extract_rules_from_grammar
 from grammaropt.grammar import as_str
 from grammaropt.random import RandomWalker
-from grammaropt.types import Int, Float
+from grammaropt.terminal_types import Int, Float
 from grammaropt.rnn import RnnModel
 from grammaropt.rnn import RnnAdapter
 from grammaropt.rnn import RnnWalker
