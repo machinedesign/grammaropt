@@ -19,8 +19,8 @@ arith = r"""
     pc = ")"
 """
 
-class DummyWalker(Walker):
 
+class DummyWalker(Walker):
     def next_rule(self, rules, depth=0):
         for r in rules:
             if not isinstance(r, Compound):
@@ -47,7 +47,6 @@ def test_build_grammar():
     assert type(grammar["d"]) == Int
 
 
-
 def test_extract_rules_from_grammar():
     types = {"int": Int(1, 10)}
     grammar = build_grammar(arith, types=types)
@@ -71,7 +70,7 @@ def test_deterministic_walker():
     dec = [
         _Decision(rule=grammar["S"], choice=grammar["T"]),
         _Decision(rule=grammar["T"], choice=grammar["int"]),
-        _Decision(rule=grammar["int"], choice=5)
+        _Decision(rule=grammar["int"], choice=5),
     ]
     expr = "5"
     wl = DeterministicWalker(grammar, expr)
@@ -86,22 +85,20 @@ def test_deterministic_walker():
         assert len(wl.decisions) == 9
         assert wl.terminals == ["x", "+", "cos", "(", "x", "+", 5, ")"]
 
+
 def test_rule_depth():
     types = {"int": Int(1, 10)}
     grammar = build_grammar(arith, types=types)
-    assert _rule_depth(grammar["S"]) == 2 # S -> T -> "x"
-    assert _rule_depth(grammar["T"]) == 1 # T -> "x"
+    assert _rule_depth(grammar["S"]) == 2  # S -> T -> "x"
+    assert _rule_depth(grammar["T"]) == 1  # T -> "x"
     assert _rule_depth(grammar["int"]) == 0
+
 
 def test_vectorizer():
     types = {"int": Int(1, 10)}
     grammar = build_grammar(arith, types=types)
     vect = Vectorizer(grammar, pad=True)
-    doc = [
-        "x+1",
-        "x+2",
-        "(x+1)*(x+3)"
-    ]
+    doc = ["x+1", "x+2", "(x+1)*(x+3)"]
     with pytest.raises(AssertionError):
         vect.transform(doc)
 
@@ -119,11 +116,11 @@ def test_vectorizer():
     doc_ = vect.inverse_transform(toks)
     assert doc_ == doc
 
-    vect = Vectorizer(grammar, pad=True, max_length=5) 
+    vect = Vectorizer(grammar, pad=True, max_length=5)
     assert vect.inverse_transform(vect.transform(["x+1"])) == ["x+1"]
     assert vect.inverse_transform(vect.transform(["x+1", "2+x"])) == ["x+1", "2+x"]
     with pytest.raises(AssertionError):
-        vect.transform(['(x+1)*(x+3)'])
+        vect.transform(["(x+1)*(x+3)"])
 
     vect = Vectorizer(grammar, pad=True, max_length=15)
     assert vect.inverse_transform(vect.transform(doc)) == doc

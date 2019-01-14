@@ -76,7 +76,8 @@ def _extract_rules(rules, out=set()):
             if isinstance(rule, Compound):
                 _extract_rules(rule.members, out=out)
 
-#TODO :@lru_cache(max_size=None) was removed because it was causing
+
+# TODO :@lru_cache(max_size=None) was removed because it was causing
 # recursion error with parsimonious 0.8
 def rule_depth(rule):
     return _rule_depth(rule, depths=None)
@@ -93,7 +94,7 @@ def _rule_depth(rule, depths=None):
     # detecting and deal with cycles
     if rule in depths:
         return depths[rule]
-    depths[rule] = float('inf')
+    depths[rule] = float("inf")
     if isinstance(rule, OneOf):
         depth = 1 + min(map(partial(_rule_depth, depths=depths), rule.members))
     elif isinstance(rule, Sequence):
@@ -108,7 +109,7 @@ def _build_type_rules(types):
     rules = {}
     for name, type in types.items():
         rules[name] = type
-        rules[name].name = name #TODO is it necessary?
+        rules[name].name = name  # TODO is it necessary?
     return rules
 
 
@@ -147,7 +148,10 @@ class Walker:
         are available, otherwise keep applying production rules.
 
     """
-    def __init__(self, grammar, min_depth=None, max_depth=None, strict_depth_limit=False):
+
+    def __init__(
+        self, grammar, min_depth=None, max_depth=None, strict_depth_limit=False
+    ):
         if min_depth and max_depth:
             assert min_depth <= max_depth
         self.grammar = grammar
@@ -162,7 +166,7 @@ class Walker:
         `depth` is an `int` provides information about the current 
         depth of the parsetree.
         """
-        raise NotImplementedError() 
+        raise NotImplementedError()
 
     def next_value(self, rule):
         """
@@ -211,7 +215,7 @@ class Walker:
                 members = rule.members
                 members = [(m, depth + 1) for m in members]
                 # put them in reverse order so that when popped the order
-                # is the same than the order of `members` 
+                # is the same than the order of `members`
                 stack.extend(members[::-1])
             elif isinstance(rule, Literal):
                 val = rule.literal
@@ -219,7 +223,7 @@ class Walker:
             elif isinstance(rule, Type):
                 val = self.next_value(rule)
                 self.terminals.append(val)
-    
+
     def _filter_by_depth(self, rules, depth):
         if self.min_depth is not None and depth <= self.min_depth:
             if self.strict_depth_limit:
@@ -239,7 +243,9 @@ class Walker:
             return rules
 
 
-_Decision =  namedtuple('Decision', ['rule', 'choice'])
+_Decision = namedtuple("Decision", ["rule", "choice"])
+
+
 class DeterministicWalker(Walker):
     """
     a very specific Walker that uses a given str expression `expr`, parse it
@@ -252,6 +258,7 @@ class DeterministicWalker(Walker):
     the missing information needed by `DeterministicWalker` was the parent rule that is used to 
     create a `Node`.
     """
+
     def __init__(self, grammar, expr):
         super().__init__(grammar)
         self.expr = expr
@@ -262,7 +269,7 @@ class DeterministicWalker(Walker):
         self.decisions = []
 
     def walk(self):
-        #WARNING : this function have a side effect on the grammar object `self.grammar`
+        # WARNING : this function have a side effect on the grammar object `self.grammar`
         # but it cleans things up at the end of the call. I dont't find yet a better
         # way of doing that (see the description of `DeterministicWalker` to see why).
         grammar = self.grammar
@@ -282,27 +289,31 @@ class DeterministicWalker(Walker):
         while len(stack):
             node = stack.pop()
             # these are all nodes where choices have been made (that is, either `OneOf` or `Type`)
-            if hasattr(node, 'parent_rule'):
+            if hasattr(node, "parent_rule"):
                 # OneOf nodes
                 if isinstance(node.parent_rule, OneOf):
-                    self.decisions.append(_Decision(rule=node.parent_rule, choice=node.rule))
+                    self.decisions.append(
+                        _Decision(rule=node.parent_rule, choice=node.rule)
+                    )
                 # Type nodes
                 elif isinstance(node.parent_rule, Type):
                     val = node.parent_rule.from_str(node.text)
                     self.decisions.append(_Decision(rule=node.parent_rule, choice=val))
                 else:
-                    raise TypeError('Unrecognize parent rule : {}'.format(node.parent_rule))
+                    raise TypeError(
+                        "Unrecognize parent rule : {}".format(node.parent_rule)
+                    )
             # terminals
             if len(node.children) == 0:
                 val = node.text
-                if hasattr(node, 'parent_rule') and isinstance(node.parent_rule, Type):
+                if hasattr(node, "parent_rule") and isinstance(node.parent_rule, Type):
                     val = node.parent_rule.from_str(val)
                 self.terminals.append(val)
             stack.extend(node.children[::-1])
 
         # unpatch OneOf and Type _uncached_match method
         for rule in rules:
-            if hasattr(rule, '_uncached_match_orig'):
+            if hasattr(rule, "_uncached_match_orig"):
                 rule._uncached_match = rule._uncached_match_orig
 
 
@@ -313,22 +324,22 @@ def _patched_oneof_match(self, text, pos, cache, error):
         node = m.match_core(text, pos, cache, error)
         if node is not None:
             node = Node(self.name, text, pos, node.end, children=[node])
-            node = _Wrapper(node) # proxy class to bypass __slots__ of Node
-            node.parent_rule = self # newly addde line
-            node.rule = m # newly added line
+            node = _Wrapper(node)  # proxy class to bypass __slots__ of Node
+            node.parent_rule = self  # newly addde line
+            node.rule = m  # newly added line
             return node
 
 
-def _patched_type_match(self, text, pos , cache, error):
+def _patched_type_match(self, text, pos, cache, error):
     # pasted from `parsimonious` source code (parsimonious.expressions.Regex)
     # only difference is one line
     m = self.re.match(text, pos)
     if m is not None:
         span = m.span()
         node = RegexNode(self.name, text, pos, pos + span[1] - span[0])
-        node = _Wrapper(node) # proxy class to bypass __slots__ of RegexNode
+        node = _Wrapper(node)  # proxy class to bypass __slots__ of RegexNode
         node.match = m  # TODO: A terrible idea for cache size?
-        node.parent_rule = self # newly added line
+        node.parent_rule = self  # newly added line
     return node
 
 
@@ -337,7 +348,7 @@ def as_str(terminals):
     converts a set of literals (either values or str) to a single str (concatenation of all the literals)
     it is used to convert the trace obtained by a Walker (in `walker.terminals`) into a single str
     """
-    return ''.join(map(str, terminals))
+    return "".join(map(str, terminals))
 
 
 class DecisionsWalker(Walker):
@@ -347,14 +358,17 @@ class DecisionsWalker(Walker):
     From the terminals, it is possible to obtain the string expression
     by concatenating them (the terminals).
     """
+
     def __init__(self, grammar, decisions):
-        super().__init__(grammar, min_depth=None, max_depth=None, strict_depth_limit=False)
+        super().__init__(
+            grammar, min_depth=None, max_depth=None, strict_depth_limit=False
+        )
         self.decisions = decisions
-    
+
     def _init_walk(self):
         super()._init_walk()
         self._external_decisions = self.decisions[::-1]
-    
+
     def next_rule(self, rules):
         parent_rule, rule = self._external_decisions.pop()
         return rule
@@ -365,6 +379,8 @@ class DecisionsWalker(Walker):
 
 
 NULL_SYMBOL = None
+
+
 class Vectorizer:
     """
     a class that is used to vectorize a list of string expressions
@@ -387,13 +403,14 @@ class Vectorizer:
         used if `pad` is True, it specifies the length
         that a all transformed elements will have.
     """
+
     def __init__(self, grammar, pad=True, max_length=None):
         self.grammar = grammar
         self.pad = pad
         self.max_length = max_length
         self._rules = None
         self.tok_to_id = None
-    
+
     def _init(self):
         if not self._rules:
             self._rules = extract_rules_from_grammar(self.grammar)
@@ -424,7 +441,11 @@ class Vectorizer:
             else:
                 max_length = self.max_length
             for expr in doc:
-                assert len(expr) <= max_length, "All expressions of `doc` must be smaller than max_length={}, but {} is bigger".format(max_length, expr)
+                assert (
+                    len(expr) <= max_length
+                ), "All expressions of `doc` must be smaller than max_length={}, but {} is bigger".format(
+                    max_length, expr
+                )
             doc = [expr + [0] * (max_length - len(expr)) for expr in doc]
         return doc
 
@@ -432,7 +453,9 @@ class Vectorizer:
         wl = DeterministicWalker(self.grammar, expr)
         wl.walk()
         for decision in wl.decisions:
-            assert isinstance(decision.choice, Expression), "Value-kind decisions are not supported"
+            assert isinstance(
+                decision.choice, Expression
+            ), "Value-kind decisions are not supported"
         return [self.tok_to_id[decision.choice] for decision in wl.decisions]
 
     def inverse_transform(self, doc):
@@ -451,24 +474,28 @@ class Vectorizer:
 
     def _inverse_transform_single(self, expr):
         expr = [symb for symb in expr if symb is not NULL_SYMBOL]
-        decisions = [_Decision(rule=None, choice=self._id_to_tok[symb]) for symb in expr]
+        decisions = [
+            _Decision(rule=None, choice=self._id_to_tok[symb]) for symb in expr
+        ]
         wl = DecisionsWalker(self.grammar, decisions)
         wl.walk()
         return as_str(wl.terminals)
 
+
 class _Wrapper(object):
-    '''
+    """
     Source : http://code.activestate.com/recipes/577555-object-wrapper-class/
     Object wrapper class.
     This a wrapper for objects. It is initialiesed with the object to wrap
     and then proxies the unhandled getattribute methods to it.
     Other classes are to inherit from it.
-    '''
+    """
+
     def __init__(self, obj):
-        '''
+        """
         Wrapper constructor.
         @param obj: object to wrap
-        '''
+        """
         # wrap the object
         self._wrapped_obj = obj
 

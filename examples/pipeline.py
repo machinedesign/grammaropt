@@ -42,7 +42,7 @@ def evaluate(code):
     try:
         scores = cross_val_score(clf, X, y, cv=5)
     except Exception:
-        return 0.
+        return 0.0
     else:
         return float(np.mean(scores))
 
@@ -64,11 +64,11 @@ def main():
         rf = "RandomForestClassifier" "(" "max_depth" "=" int "," "max_features" "=" float ")"
     """
     # build grammar
-    types = {'int': Int(1, 10), 'float': Float(0., 1.)}
+    types = {"int": Int(1, 10), "float": Float(0.0, 1.0)}
     grammar = build_grammar(rules, types=types)
     rules = extract_rules_from_grammar(grammar)
     tok_to_id = {r: i for i, r in enumerate(rules)}
-        
+
     # set hyper-parameters and build RNN model
     nb_iter = 100
     vocab_size = len(rules)
@@ -79,17 +79,18 @@ def main():
     gamma = 0.9
 
     model = RnnModel(
-        vocab_size=vocab_size, 
-        emb_size=emb_size, 
-        hidden_size=hidden_size, 
-        nb_features=nb_features)
+        vocab_size=vocab_size,
+        emb_size=emb_size,
+        hidden_size=hidden_size,
+        nb_features=nb_features,
+    )
 
-    optim = torch.optim.Adam(model.parameters(), lr=lr) 
+    optim = torch.optim.Adam(model.parameters(), lr=lr)
     rnn = RnnAdapter(model, tok_to_id)
-    
+
     # optimization loop
     acc_rnn = []
-    R_avg, R_max = 0., 0.
+    R_avg, R_max = 0.0, 0.0
     wl = RnnWalker(grammar=grammar, rnn=rnn)
     out = []
     for it in range(nb_iter):
@@ -105,7 +106,7 @@ def main():
         R_avg = R_avg * gamma + R * (1 - gamma)
         # update the model
         model.zero_grad()
-        # loss is policy gradient : generate using the 
+        # loss is policy gradient : generate using the
         # model, observe reward R, then maximize the probability
         # of the generated decisions propoertionally to the reward.
         # `R_avg is the policy gradient baseline to make the gradient
@@ -119,7 +120,8 @@ def main():
         print(code, R)
     df = pd.DataFrame(out)
     df = df.sort_values(by="R", ascending=False)
-    df.to_csv('pipeline.csv')
-    
-if __name__ == '__main__':
+    df.to_csv("pipeline.csv")
+
+
+if __name__ == "__main__":
     main()

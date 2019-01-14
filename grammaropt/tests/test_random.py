@@ -11,16 +11,18 @@ arith = r"""
     pc = ")"
 """
 
+
 def test_random_walker():
     types = {"int": Int(1, 10)}
     grammar = build_grammar(arith, types=types)
     for min_depth in range(1, 10):
         wl = RandomWalker(grammar, min_depth=min_depth, max_depth=10, random_state=42)
         wl.walk()
-        expr =''.join([str(t) for t in wl.terminals])
+        expr = "".join([str(t) for t in wl.terminals])
         node = grammar.parse(expr)
         depth = _get_max_depth(node)
         assert depth >= min_depth
+
 
 def test_optimize():
     types = {"int": Int(1, 10)}

@@ -21,9 +21,7 @@ rules = r"""
 
 grammar = build_grammar(rules)
 v = Vectorizer(grammar)
-corpus = [
-    "1+2",
-]
+corpus = ["1+2"]
 X = v.transform(corpus)
 corpus_ = v.inverse_transform(X)
 print(corpus_)

@@ -9,6 +9,7 @@ from parsimonious.expressions import Compound, Sequence
 from .grammar import as_str
 from .grammar import Walker
 
+
 class RandomWalker(Walker):
     """
     a random Walker that selects production rules and values uniformly
@@ -34,8 +35,21 @@ class RandomWalker(Walker):
         If False, even when `max_depth` is reached, choose terminals when terminals
         are available, otherwise keep applying production rules.
     """
-    def __init__(self, grammar, min_depth=None, max_depth=None, strict_depth_limit=False, random_state=None):
-        super().__init__(grammar, min_depth=min_depth, max_depth=max_depth, strict_depth_limit=strict_depth_limit)
+
+    def __init__(
+        self,
+        grammar,
+        min_depth=None,
+        max_depth=None,
+        strict_depth_limit=False,
+        random_state=None,
+    ):
+        super().__init__(
+            grammar,
+            min_depth=min_depth,
+            max_depth=max_depth,
+            strict_depth_limit=strict_depth_limit,
+        )
         self.rng = np.random.RandomState(random_state)
 
     def next_rule(self, rules):
@@ -43,6 +57,7 @@ class RandomWalker(Walker):
 
     def next_value(self, rule):
         return rule.uniform_sample(self.rng)
+
 
 def optimize(func, walker, nb_iter=10):
     """

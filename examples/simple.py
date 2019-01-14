@@ -22,7 +22,7 @@ rules = r"""
     pc = ")"
 """
 
-types = {'int': Int(1, 10)}
+types = {"int": Int(1, 10)}
 grammar = build_grammar(rules, types=types)
 
 wl = RandomWalker(grammar=grammar, min_depth=1, max_depth=10)

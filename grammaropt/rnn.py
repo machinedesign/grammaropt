@@ -48,18 +48,29 @@ class RnnModel(nn.Module):
         if True, use cuda.
         
     """
-    def __init__(self, vocab_size=10, emb_size=128, hidden_size=128, num_layers=1, nb_features=1, use_cuda=False):
-        super().__init__()   
+
+    def __init__(
+        self,
+        vocab_size=10,
+        emb_size=128,
+        hidden_size=128,
+        num_layers=1,
+        nb_features=1,
+        use_cuda=False,
+    ):
+        super().__init__()
         self.vocab_size = vocab_size
         self.emb_size = emb_size
         self.hidden_size = hidden_size
         self.use_cuda = use_cuda
 
         self.emb = nn.Embedding(vocab_size, emb_size)
-        self.lstm = nn.LSTM(emb_size, hidden_size, batch_first=True, num_layers=num_layers)
-        self.out_token  = nn.Linear(hidden_size, vocab_size)
+        self.lstm = nn.LSTM(
+            emb_size, hidden_size, batch_first=True, num_layers=num_layers
+        )
+        self.out_token = nn.Linear(hidden_size, vocab_size)
         self.out_value = nn.Linear(hidden_size, nb_features)
-    
+
     def forward(self, inp):
         x = self.emb(inp)
         o, _ = self.lstm(x)
@@ -74,17 +85,17 @@ class RnnModel(nn.Module):
         x = self.emb(inp)
         _, state = self.lstm(x, state)
         h, c = state
-        h = h[-1] # last layer
+        h = h[-1]  # last layer
         o = self.out_token(h)
         return o, state
-    
+
     def next_value(self, inp, state):
         if self.use_cuda:
             inp = inp.cuda()
         x = self.emb(inp)
         _, state = self.lstm(x, state)
         h, c = state
-        h = h[-1] # last layer
+        h = h[-1]  # last layer
         o = self.out_value(h)
         return o, state
 
@@ -113,6 +124,7 @@ class RnnAdapter:
         is used.
 
     """
+
     def __init__(self, model, tok_to_id, begin_tok=None, random_state=None):
         assert model.vocab_size == len(tok_to_id)
         self.model = model
@@ -138,7 +150,7 @@ class RnnAdapter:
             full = set(self.tok_to_id.keys())
             forbidden = full - set(allowed)
             for tok in forbidden:
-                pr[self.tok_to_id[tok]] = 0.
+                pr[self.tok_to_id[tok]] = 0.0
         pr = pr.tolist()
         # - the nan thing happened when I added a random
         #   exploration (prop of time generate randomly), not sure
@@ -149,15 +161,15 @@ class RnnAdapter:
         #   that pr will be close to zero
         # - in both cases, solve the problem by generating
         #   uniformly from the allowed tokens
-        if np.any(np.isnan(pr)) or math.isclose(sum(pr),  0):
+        if np.any(np.isnan(pr)) or math.isclose(sum(pr), 0):
             if allowed:
                 for i in range(len(pr)):
-                    pr[i] = 0.
+                    pr[i] = 0.0
                 for al in allowed:
-                    pr[self.tok_to_id[al]] = 1.
+                    pr[self.tok_to_id[al]] = 1.0
             else:
                 for i in range(len(pr)):
-                    pr[i] = 1.
+                    pr[i] = 1.0
         assert sum(pr) > 0
         assert len(pr) == len(self.tok_to_id)
         pr = _normalize(pr)
@@ -180,7 +192,7 @@ class RnnAdapter:
         if type(tok) == Int:
             mu = stat[0][0]
             mu = math.tanh(mu)
-            mu = (mu + 1) / 2.
+            mu = (mu + 1) / 2.0
             mu = mu * (tok.high - tok.low) + tok.low
             val = self.rng.poisson(mu)
             val = min(val, tok.high)
@@ -198,16 +210,16 @@ class RnnAdapter:
             """
             mu = stat[0][0]
             mu = math.tanh(mu)
-            mu = (mu + 1) / 2.
+            mu = (mu + 1) / 2.0
             mu = mu * (tok.high - tok.low) + tok.low
-            std = (stat[0][1])**2
+            std = (stat[0][1]) ** 2
             val = self.rng.normal(mu, std)
             val = min(val, tok.high)
             val = max(val, tok.low)
             return val
         else:
-            raise TypeError('Unrecognized type : {}'.format(tok))
-    
+            raise TypeError("Unrecognized type : {}".format(tok))
+
     def token_logp(self, tok, pr):
         """
         compute the log probability of a Token `tok` from a a set
@@ -230,7 +242,7 @@ class RnnAdapter:
             # convert to [-1, 1]
             mu = torch.tanh(mu)
             # convert to [0, 1]
-            mu = (mu + 1) / 2.
+            mu = (mu + 1) / 2.0
             # convert to [low, high] provided by the  Int `tok`
             mu = mu * (tok.high - tok.low) + tok.low
             # mu represents the mean of a poisson.
@@ -241,14 +253,14 @@ class RnnAdapter:
             mu = stats[0][0]
             mu = torch.tanh(mu)
             # convert to [0, 1]
-            mu = (mu + 1) / 2.
+            mu = (mu + 1) / 2.0
             # convert to [low, high] provided by the  Float `tok`
             mu = mu * (tok.high - tok.low) + tok.low
-            std = (stats[0][1])**2
+            std = (stats[0][1]) ** 2
             logp = _torch_logp_normal(val, mu, std)
             return logp
         else:
-            raise TypeError('Unrecognized type : {}'.format(tok))
+            raise TypeError("Unrecognized type : {}".format(tok))
 
     def _preprocess_input(self, inp):
         # convert `inp` which is a Token to an integer
@@ -257,7 +269,7 @@ class RnnAdapter:
         if inp is None:
             inp = self.begin_tok
         cur_id = self.tok_to_id[inp]
-        x = torch.zeros(1, 1).long() # batch_size, nb_timesteps
+        x = torch.zeros(1, 1).long()  # batch_size, nb_timesteps
         x.fill_(cur_id)
         x = Variable(x)
         return x
@@ -265,24 +277,33 @@ class RnnAdapter:
 
 def _torch_logp_normal(val, mu, std):
     from scipy.stats import norm
-    logp = -0.5 * ((val - mu) ** 2) / std**2 - torch.log(std) - math.log(math.sqrt(2. * math.pi))
+
+    logp = (
+        -0.5 * ((val - mu) ** 2) / std ** 2
+        - torch.log(std)
+        - math.log(math.sqrt(2.0 * math.pi))
+    )
     return logp
+
 
 def _torch_logp_poisson(val, mu):
     logp = val * torch.log(mu) - mu - _log_factorial(val)
     return logp
 
+
 def _torch_logp_beta(val, a, b):
     val = torch.FloatTensor([val])
     return (a - 1) * torch.log(val) + (b - 1) * torch.log(1 - val) - _log_B(a[0], b[0])
 
+
 def _log_B(a, b):
     from scipy.special import gammaln
+
     return float(gammaln(a) + gammaln(b) - gammaln(a + b))
 
 
 def _log_factorial(k):
-    #compute $log(k!)$
+    # compute $log(k!)$
     return sum(math.log(i) for i in range(1, k + 1))
 
 
@@ -311,11 +332,11 @@ def _normalize(vals):
     np.array of float
     
     """
-    vals = np.array(vals, dtype='float64')
+    vals = np.array(vals, dtype="float64")
     if len(vals) == 0:
-        raise ValueError('Cannot normalize an empty vector.')
+        raise ValueError("Cannot normalize an empty vector.")
     if vals.sum() == 0:
-        raise ValueError('Cannot normalize to 1 a vector of zeros.')
+        raise ValueError("Cannot normalize to 1 a vector of zeros.")
     elif len(vals) > 1:
         vals /= vals.sum()
         pos = vals > 0
@@ -325,10 +346,12 @@ def _normalize(vals):
             vals[-1] = 1.0 - vals[0:-1].sum()
         return vals
     else:
-        return np.array([1.])
+        return np.array([1.0])
 
 
-_Decision = namedtuple('Decision', ['action', 'given', 'pred', 'gen'])
+_Decision = namedtuple("Decision", ["action", "given", "pred", "gen"])
+
+
 class RnnWalker(Walker):
 
     """
@@ -359,31 +382,53 @@ class RnnWalker(Walker):
         If `temperature` is close to 0   : make it more likely to choose the token with the highest proba
         If `temperature` is close to inf : make the probability distribution uniform
     """
-    def __init__(self, grammar, rnn, min_depth=None, max_depth=None, strict_depth_limit=False, temperature=1.0):
-        super().__init__(grammar, min_depth=min_depth, max_depth=max_depth, strict_depth_limit=strict_depth_limit)
+
+    def __init__(
+        self,
+        grammar,
+        rnn,
+        min_depth=None,
+        max_depth=None,
+        strict_depth_limit=False,
+        temperature=1.0,
+    ):
+        super().__init__(
+            grammar,
+            min_depth=min_depth,
+            max_depth=max_depth,
+            strict_depth_limit=strict_depth_limit,
+        )
         self.rnn = rnn
         self.temperature = temperature
 
     def _init_walk(self):
         super()._init_walk()
         self._input = None
-        self._state = None # in pytorch if the state is None, it will be initialized by zero
+        self._state = (
+            None
+        )  # in pytorch if the state is None, it will be initialized by zero
         self._decisions = []
-    
+
     def next_rule(self, rules):
-        pr, self._state = self.rnn.predict_next_token(self._input, self._state, temperature=self.temperature)
+        pr, self._state = self.rnn.predict_next_token(
+            self._input, self._state, temperature=self.temperature
+        )
         rule = self._generate_rule(pr, rules)
         self._input = rule
-        self._decisions.append(_Decision(action='rule', given=rules, pred=pr, gen=rule))
+        self._decisions.append(_Decision(action="rule", given=rules, pred=pr, gen=rule))
         return rule
-    
+
     def _generate_rule(self, pr, rules):
-        return self.rnn.generate_next_token(pr, allowed=rules, temperature=self.temperature)
+        return self.rnn.generate_next_token(
+            pr, allowed=rules, temperature=self.temperature
+        )
 
     def next_value(self, rule):
         stats, _ = self.rnn.predict_next_value(self._input, self._state)
         val = self._generate_value(stats, rule)
-        self._decisions.append(_Decision(action='value', given=rule, pred=stats, gen=val))
+        self._decisions.append(
+            _Decision(action="value", given=rule, pred=stats, gen=val)
+        )
         return val
 
     def _generate_value(self, stats, rule):
@@ -398,19 +443,19 @@ class RnnWalker(Walker):
         maximize the probability of the decisions that the RNN
         has taken.
         """
-        loss_toks = 0.
-        loss_vals = 0.
+        loss_toks = 0.0
+        loss_vals = 0.0
         for dc in self._decisions:
-            if dc.action == 'rule':
+            if dc.action == "rule":
                 loss_toks += -self.rnn.token_logp(dc.gen, dc.pred)
-            elif dc.action == 'value':
+            elif dc.action == "value":
                 loss_vals += -self.rnn.value_logp(dc.given, dc.gen, dc.pred)
         loss = loss_toks + loss_vals
         return loss
 
 
 class RnnDeterministicWalker(RnnWalker):
-    
+
     """
     RnnWalker but where we don't use the RNN to generate decisions, we provide
     a groundtruth set of production rules and we collect the trace that
@@ -420,14 +465,17 @@ class RnnDeterministicWalker(RnnWalker):
     that the RNN should have taken to generate an expression.
     `decisions` can be obtained by using a `DeterministicWalker` on an expression.
     """
+
     def __init__(self, grammar, rnn, decisions):
-        super().__init__(grammar, rnn, min_depth=None, max_depth=None, strict_depth_limit=False)
+        super().__init__(
+            grammar, rnn, min_depth=None, max_depth=None, strict_depth_limit=False
+        )
         self.decisions = decisions
-    
+
     def _init_walk(self):
         super()._init_walk()
         self._external_decisions = self.decisions[::-1]
-    
+
     def _generate_rule(self, pr, rules):
         parent_rule, rule = self._external_decisions.pop()
         assert parent_rule.members == rules
@@ -480,7 +528,7 @@ def optimize(func, walker, optim, nb_iter=10, gamma=0.9):
     model = wl.rnn.model
     X = []
     y = []
-    R_avg = 0.
+    R_avg = 0.0
     for it in range(nb_iter):
         wl.walk()
         code = as_str(wl.terminals)

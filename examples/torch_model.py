@@ -23,6 +23,7 @@ from grammaropt.rnn import RnnAdapter
 from grammaropt.rnn import RnnModel
 from grammaropt.rnn import RnnWalker
 
+
 def acc(pred, true_classes):
     _, pred_classes = pred.max(1)
     acc = (pred_classes == true_classes).float().mean()
@@ -38,14 +39,11 @@ rules = r"""
     int = "0" / "1" / "2" / "3" / "4" / "5" / "6" / "7" / "8" / "9"
 """
 grammar = build_grammar(rules)
-corpus = [
-    'x*{}+{}'.format(i, j)
-    for i, j in product(range(10), range(10))
-]
+corpus = ["x*{}+{}".format(i, j) for i, j in product(range(10), range(10))]
 vect = Vectorizer(grammar, pad=True)
 X = vect.transform(corpus)
 X = [[0] + x for x in X]
-X = np.array(X).astype('int32')
+X = np.array(X).astype("int32")
 
 # Model
 max_length = max(map(len, X))
@@ -63,18 +61,18 @@ wl = RnnWalker(grammar, adp, temperature=1.0, min_depth=1, max_depth=5)
 I = X[:, 0:-1]
 O = X[:, 1:]
 crit = nn.CrossEntropyLoss()
-avg_loss = 0.
-avg_precision = 0.
+avg_loss = 0.0
+avg_precision = 0.0
 for i in range(epochs):
     for j in range(0, len(I), batch_size):
-        inp = I[j:j+batch_size]
-        out = O[j:j+batch_size]
+        inp = I[j : j + batch_size]
+        out = O[j : j + batch_size]
         out = out.flatten()
         inp = torch.from_numpy(inp).long()
         inp = Variable(inp)
         out = torch.from_numpy(out).long()
         out = Variable(out)
-        
+
         model.zero_grad()
         y = model(inp)
         loss = crit(y, out)
@@ -85,8 +83,12 @@ for i in range(epochs):
         avg_loss = avg_loss * 0.9 + loss.item() * 0.1
         avg_precision = avg_precision * 0.9 + precision.item() * 0.1
         if i % 10 == 0:
-            print('Epoch : {:05d} Avg loss : {:.6f} Avg Precision : {:.6f}'.format(i, avg_loss, avg_precision))
-            print('Generated :')
+            print(
+                "Epoch : {:05d} Avg loss : {:.6f} Avg Precision : {:.6f}".format(
+                    i, avg_loss, avg_precision
+                )
+            )
+            print("Generated :")
             wl.walk()
             expr = as_str(wl.terminals)
             print(expr)
