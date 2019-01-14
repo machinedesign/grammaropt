@@ -82,8 +82,8 @@ for i in range(epochs):
         loss.backward()
         optim.step()
 
-        avg_loss = avg_loss * 0.9 + loss.data[0] * 0.1
-        avg_precision = avg_precision * 0.9 + precision.data[0] * 0.1
+        avg_loss = avg_loss * 0.9 + loss.item() * 0.1
+        avg_precision = avg_precision * 0.9 + precision.item() * 0.1
         if i % 10 == 0:
             print('Epoch : {:05d} Avg loss : {:.6f} Avg Precision : {:.6f}'.format(i, avg_loss, avg_precision))
             print('Generated :')

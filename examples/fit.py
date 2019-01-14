@@ -56,7 +56,7 @@ wl.walk()
 gt = wl.decisions
 
 for _ in range(1000):
-    # fit the RNN model to make it more likely to generate `expr
+    # fit the RNN model to make it more likely to generate `expr`
     model.zero_grad()
     wl = RnnDeterministicWalker(grammar=grammar, rnn=rnn, decisions=gt)
     wl.walk()
@@ -67,4 +67,4 @@ for _ in range(1000):
     wl = RnnWalker(grammar=grammar, rnn=rnn)
     wl.walk()
     expr_rnn = as_str(wl.terminals)
-    print('Loss : {:.5f}, Generated : {}, Groundtruth : {}'.format(loss.data[0], expr_rnn, expr))
+    print('Loss : {:.5f}, Generated : {}, Groundtruth : {}'.format(loss.item(), expr_rnn, expr))
